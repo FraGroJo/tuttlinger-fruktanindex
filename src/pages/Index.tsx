@@ -24,7 +24,7 @@ const Index = () => {
     if (!data) return;
     try {
       exportToCSV(
-        [data.today, data.tomorrow, data.dayAfterTomorrow],
+        [data.today, data.tomorrow, data.dayAfterTomorrow, data.dayThree],
         location.name
       );
       toast({
@@ -44,7 +44,7 @@ const Index = () => {
     if (!data) return;
     try {
       exportToPDF(
-        [data.today, data.tomorrow, data.dayAfterTomorrow],
+        [data.today, data.tomorrow, data.dayAfterTomorrow, data.dayThree],
         location.name,
         true
       );
@@ -92,19 +92,9 @@ const Index = () => {
       />
 
       <main className="container mx-auto px-4 py-8">
-        {/* Hero-Section */}
-        <div className="text-center py-6 px-4 mb-6">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-3 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            Fruktan-Radar Tuttlingen
-          </h2>
-          <p className="text-base text-muted-foreground max-w-2xl mx-auto">
-            Weiderisiko heute – schnell verstehen & sicher entscheiden
-          </p>
-        </div>
-
         {/* Current Conditions */}
         {data.current && (
-          <section className="mb-6 animate-fade-in">
+          <section className="mb-8 animate-fade-in">
             <CurrentConditions current={data.current} source={data.source} flags={data.flags} />
           </section>
         )}
@@ -146,6 +136,7 @@ const Index = () => {
             today={data.today}
             tomorrow={data.tomorrow}
             dayAfterTomorrow={data.dayAfterTomorrow}
+            dayThree={data.dayThree}
           />
         </section>
 

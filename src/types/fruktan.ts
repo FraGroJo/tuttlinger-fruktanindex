@@ -198,6 +198,7 @@ export interface FruktanResponse {
   today: DayMatrix;
   tomorrow: DayMatrix;
   dayAfterTomorrow: DayMatrix;
+  dayThree: DayMatrix;
   generatedAt: string;
   emsMode: boolean;
   metadata: {

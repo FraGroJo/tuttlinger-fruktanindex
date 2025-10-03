@@ -80,11 +80,11 @@ export function TrendChart({ data, confidence = "normal", className = "" }: Tren
   const timeZone = "Europe/Berlin";
 
   return (
-    <div className={`rounded-2xl border border-border bg-card p-4 shadow-sm ${className}`}>
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-base font-semibold text-card-foreground">Trend-Verlauf (EMS)</h3>
+    <div className={`rounded-2xl border border-border bg-card p-6 shadow-lg ${className}`}>
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-card-foreground">Trend-Verlauf (EMS)</h3>
         <div className="flex items-center gap-2">
-          <div className="text-xs text-muted-foreground">Fruktan-Risiko (EMS) • stündlich</div>
+          <div className="text-sm text-muted-foreground">Fruktan-Risiko (EMS) • stündlich</div>
           {confidence === "low" && (
             <span className="text-xs px-2 py-1 rounded bg-warning/10 text-warning border border-warning/30">
               Geringe Konfidenz
@@ -94,7 +94,7 @@ export function TrendChart({ data, confidence = "normal", className = "" }: Tren
       </div>
 
       <div role="img" aria-label="Trend des Fruktan-Scores über Zeit (EMS farbcodiert)">
-        <ResponsiveContainer width="100%" height={340}>
+        <ResponsiveContainer width="100%" height={380}>
           <ComposedChart data={data} margin={{ top: 10, right: 16, bottom: 8, left: 0 }}>
             {/* Farbbänder für EMS-Schwellen */}
             <ReferenceArea y1={0} y2={EMS.GREEN_MAX} fill="hsl(142, 76%, 36%)" fillOpacity={0.10} />
@@ -102,39 +102,39 @@ export function TrendChart({ data, confidence = "normal", className = "" }: Tren
             <ReferenceArea y1={EMS.YELLOW_MAX} y2={EMS.RED_MAX} fill="hsl(0, 72%, 51%)" fillOpacity={0.08} />
 
             {/* Schwellenlinien */}
-            <ReferenceLine y={EMS.GREEN_MAX} stroke="hsl(142, 76%, 36%)" strokeDasharray="4 4" strokeWidth={1.5}>
-              <text x="95%" y={EMS.GREEN_MAX - 5} textAnchor="end" fontSize="11" fill="hsl(142, 76%, 36%)">
-                Grenze Grün
-              </text>
-            </ReferenceLine>
-            <ReferenceLine y={EMS.YELLOW_MAX} stroke="hsl(38, 92%, 50%)" strokeDasharray="4 4" strokeWidth={1.5}>
-              <text x="95%" y={EMS.YELLOW_MAX - 5} textAnchor="end" fontSize="11" fill="hsl(38, 92%, 50%)">
-                Grenze Gelb
-              </text>
-            </ReferenceLine>
+            <ReferenceLine y={EMS.GREEN_MAX} stroke="#16a34a" strokeDasharray="4 4" strokeWidth={1.5} opacity={0.6} />
+            <ReferenceLine y={EMS.YELLOW_MAX} stroke="#f59e0b" strokeDasharray="4 4" strokeWidth={1.5} opacity={0.6} />
 
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 88%)" opacity={0.3} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} opacity={0.5} />
+            
             <XAxis
               dataKey="timestamp"
               tickFormatter={(ts) => fmtAxisTime(ts, timeZone)}
-              tick={{ fontSize: 11, fill: "hsl(220, 10%, 45%)" }}
-              stroke="hsl(220, 13%, 88%)"
+              stroke="#64748b"
+              fontSize={12}
+              tickLine={false}
+              tick={{ fill: '#64748b' }}
             />
+            
             <YAxis
               domain={yDomain}
-              tick={{ fontSize: 11, fill: "hsl(220, 10%, 45%)" }}
-              stroke="hsl(220, 13%, 88%)"
-              label={{ value: "Score (EMS)", angle: -90, position: "insideLeft", style: { fontSize: 12, fill: "hsl(220, 10%, 45%)" } }}
+              stroke="#64748b"
+              fontSize={12}
+              tickLine={false}
+              tickFormatter={fmtNumber}
+              tick={{ fill: '#64748b' }}
+              label={{ value: 'Fruktan-Score', angle: -90, position: 'insideLeft', style: { fontSize: 13, fill: '#475569', fontWeight: 500 } }}
             />
-            <Tooltip content={<CustomTooltip />} />
-
+            
+            <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#94a3b8', strokeWidth: 1, strokeDasharray: '5 5' }} />
+            
             <Line
               type="monotone"
               dataKey="score"
-              stroke="hsl(220, 25%, 20%)"
-              strokeWidth={2}
+              stroke="#0f172a"
+              strokeWidth={2.5}
               dot={<RiskDot />}
-              activeDot={{ r: 5 }}
+              activeDot={{ r: 6, stroke: '#0f172a', strokeWidth: 2, fill: '#fff' }}
               isAnimationActive={false}
             />
           </ComposedChart>
@@ -142,22 +142,22 @@ export function TrendChart({ data, confidence = "normal", className = "" }: Tren
       </div>
 
       {/* Legende */}
-      <div className="mt-4 flex flex-wrap gap-4 text-xs text-muted-foreground">
+      <div className="mt-5 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-center gap-6 text-sm text-slate-600">
         <div className="flex items-center gap-2">
-          <span className="inline-block h-2 w-2 rounded-full" style={{ background: riskColor(15) }} />
-          <span>0–29: Sicher (Grün)</span>
+          <span className="inline-block h-3 w-3 rounded-full bg-[#16a34a] shadow-sm" />
+          <span className="font-medium">Sicher (0–29)</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="inline-block h-2 w-2 rounded-full" style={{ background: riskColor(45) }} />
-          <span>30–59: Erhöht (Gelb)</span>
+          <span className="inline-block h-3 w-3 rounded-full bg-[#f59e0b] shadow-sm" />
+          <span className="font-medium">Erhöht (30–59)</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="inline-block h-2 w-2 rounded-full" style={{ background: riskColor(75) }} />
-          <span>60–100: Hoch (Rot)</span>
+          <span className="inline-block h-3 w-3 rounded-full bg-[#ef4444] shadow-sm" />
+          <span className="font-medium">Hoch (60–100)</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-base">✽</span>
-          <span>Frostnacht</span>
+          <span className="text-slate-500 text-base">✽</span>
+          <span className="font-medium">Frost (≤0°C)</span>
         </div>
       </div>
     </div>

@@ -113,7 +113,7 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
     current: "temperature_2m,relative_humidity_2m,cloud_cover,wind_speed_10m,precipitation",
     daily: "temperature_2m_max,temperature_2m_min",
     past_days: "3",
-    forecast_days: "3",
+    forecast_days: "4",
   });
 
   const url = `https://api.open-meteo.com/v1/forecast?${params}`;
@@ -191,6 +191,10 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
   const dayAfterDate = new Date(todayDate + 'T12:00:00+02:00');
   dayAfterDate.setDate(dayAfterDate.getDate() + 2);
   const dayAfterDateStr = dayAfterDate.toISOString().split('T')[0];
+  
+  const dayThreeDate = new Date(todayDate + 'T12:00:00+02:00');
+  dayThreeDate.setDate(dayThreeDate.getDate() + 3);
+  const dayThreeDateStr = dayThreeDate.toISOString().split('T')[0];
   
   // Generiere Day-Matrix für einen Tag (strict local date string matching)
   const generateDayMatrix = (targetDateStr: string): DayMatrix => {
@@ -388,16 +392,18 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
     return result as DayMatrix;
   };
   
-  // Generiere Matrizen für 3 Tage (strict local date strings)
+  // Generiere Matrizen für 4 Tage (strict local date strings)
   const today = generateDayMatrix(todayDate);
   const tomorrow = generateDayMatrix(tomorrowDateStr);
   const dayAfterTomorrow = generateDayMatrix(dayAfterDateStr);
+  const dayThree = generateDayMatrix(dayThreeDateStr);
   
   // Berechne Parity-Hashes
   const windowsData = {
     today: { morning: today.morning, noon: today.noon, evening: today.evening },
     tomorrow: { morning: tomorrow.morning, noon: tomorrow.noon, evening: tomorrow.evening },
     dayAfterTomorrow: { morning: dayAfterTomorrow.morning, noon: dayAfterTomorrow.noon, evening: dayAfterTomorrow.evening },
+    dayThree: { morning: dayThree.morning, noon: dayThree.noon, evening: dayThree.evening },
   };
   
   const windowsHash = await sha256(windowsData);
@@ -439,6 +445,7 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
     today,
     tomorrow,
     dayAfterTomorrow,
+    dayThree,
     generatedAt: now.toISOString(),
     emsMode,
     metadata: {
@@ -464,7 +471,7 @@ async function fetchTrendData(location: LocationData, emsMode: boolean): Promise
     timezone: "Europe/Berlin",
     hourly: "temperature_2m,shortwave_radiation,cloud_cover,precipitation",
     past_days: "3",
-    forecast_days: "2",
+    forecast_days: "3",
   });
 
   const url = `https://api.open-meteo.com/v1/forecast?${params}`;

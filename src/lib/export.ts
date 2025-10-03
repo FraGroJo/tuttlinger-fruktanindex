@@ -253,6 +253,7 @@ export function exportToPDF(matrices: DayMatrix[], locationName: string, emsMode
           if (diffDays === 0) dayLabel = `Heute – ${formattedDate}`;
           else if (diffDays === 1) dayLabel = `Morgen – ${formattedDate}`;
           else if (diffDays === 2) dayLabel = `Übermorgen – ${formattedDate}`;
+          else if (diffDays === 3) dayLabel = `In 3 Tagen – ${formattedDate}`;
 
           return `
             <div class="day-section">
