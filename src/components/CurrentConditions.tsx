@@ -87,7 +87,7 @@ export function CurrentConditions({ current, source, flags = [] }: CurrentCondit
           <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-background/50">
             <Wind className="h-5 w-5 text-primary" />
             <span className="text-2xl font-semibold text-foreground">
-              {formatNumber(current.wind_speed_now)} m/s
+              {formatNumber(current.wind_speed_now)} km/h
             </span>
             <span className="text-xs text-muted-foreground">Wind</span>
           </div>

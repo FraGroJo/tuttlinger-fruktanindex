@@ -138,7 +138,7 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
     as_of_local: currentData.time,
     temperature_now: currentData.temperature_2m,
     relative_humidity_now: currentData.relative_humidity_2m,
-    wind_speed_now: currentData.wind_speed_10m / 3.6, // Convert km/h to m/s
+    wind_speed_now: currentData.wind_speed_10m, // Already in km/h from API
     cloud_cover_now: currentData.cloud_cover,
     precipitation_now: currentData.precipitation,
   };

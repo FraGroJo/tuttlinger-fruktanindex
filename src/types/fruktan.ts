@@ -124,7 +124,7 @@ export interface RawWindowData {
   relative_humidities: number[]; // %
   cloud_covers: number[];        // %
   precipitations: number[];      // mm
-  wind_speeds: number[];         // m/s
+  wind_speeds: number[];         // km/h (direkt von Open-Meteo)
   radiations: number[];          // W/m²
   timestamps: string[];          // ISO timestamps
 }
@@ -136,7 +136,7 @@ export interface CurrentConditions {
   as_of_local: string;          // "YYYY-MM-DDTHH:mm"
   temperature_now: number;       // °C
   relative_humidity_now: number; // %
-  wind_speed_now: number;        // m/s
+  wind_speed_now: number;        // km/h (direkt von Open-Meteo)
   cloud_cover_now: number;       // %
   precipitation_now: number;     // mm/h
   apparent_temperature?: number; // optional "feels like"
