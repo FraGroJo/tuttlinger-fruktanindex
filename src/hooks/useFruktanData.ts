@@ -125,9 +125,9 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
 
   const data = await response.json();
   
-  // Parse hourly data
+  // Parse hourly data (timestamps are already in Europe/Berlin from API)
   const hourlyData = data.hourly;
-  const hourlyTimes = hourlyData.time.map((t: string) => new Date(t));
+  const hourlyTimes = hourlyData.time; // Keep as ISO strings initially for correct TZ handling
   
   // Validierung & Flag-Sammlung
   const globalFlags: string[] = [];
@@ -173,45 +173,62 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
     et0s: hourlyData.et0_fao_evapotranspiration,
   });
   
-  // Finde Tagesgrenzen (00:00 lokale Zeit)
-  const getTodayStart = () => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
+  // Get current date in Europe/Berlin timezone (strict local bucketing)
+  const getTodayInBerlin = (): string => {
+    const berlinTime = new Date().toLocaleString("en-CA", { 
+      timeZone: "Europe/Berlin", 
+      year: "numeric", 
+      month: "2-digit", 
+      day: "2-digit" 
+    });
+    return berlinTime.split(',')[0]; // Returns YYYY-MM-DD
   };
   
-  const todayStart = getTodayStart();
-  const tomorrowStart = new Date(todayStart);
-  tomorrowStart.setDate(tomorrowStart.getDate() + 1);
-  const dayAfterStart = new Date(todayStart);
-  dayAfterStart.setDate(dayAfterStart.getDate() + 2);
+  const todayDate = getTodayInBerlin();
+  const tomorrowDate = new Date(todayDate + 'T12:00:00+02:00');
+  tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+  const tomorrowDateStr = tomorrowDate.toISOString().split('T')[0];
   
-  // Generiere Day-Matrix für einen Tag
-  const generateDayMatrix = (dayStart: Date): DayMatrix => {
-    const dayEnd = new Date(dayStart);
-    dayEnd.setDate(dayEnd.getDate() + 1);
-    
-    // Filtere Stunden für diesen Tag
+  const dayAfterDate = new Date(todayDate + 'T12:00:00+02:00');
+  dayAfterDate.setDate(dayAfterDate.getDate() + 2);
+  const dayAfterDateStr = dayAfterDate.toISOString().split('T')[0];
+  
+  // Generiere Day-Matrix für einen Tag (strict local date string matching)
+  const generateDayMatrix = (targetDateStr: string): DayMatrix => {
+    // Filter hours that match the target date string (YYYY-MM-DD)
+    // Since Open-Meteo returns timestamps in Europe/Berlin, we extract the date portion
     const dayHours = hourlyTimes
-      .map((time, idx) => ({ time, idx }))
-      .filter(({ time }) => time >= dayStart && time < dayEnd);
+      .map((timeStr: string, idx: number) => {
+        const dateStr = timeStr.split('T')[0]; // Extract YYYY-MM-DD
+        return { timeStr, dateStr, idx };
+      })
+      .filter(({ dateStr }) => dateStr === targetDateStr);
     
-    // Berechne Tagesmin/max
-    const dayTemps = dayHours.map(({ idx }) => hourlyData.temperature_2m[idx]);
-    const tempMin = Math.min(...dayTemps);
-    const tempMax = Math.max(...dayTemps);
+    // Berechne Tagesmin/max (nur aus hourly für diesen lokalen Tag)
+    const dayTemps = dayHours.map(({ idx }) => hourlyData.temperature_2m[idx]).filter(t => !isNaN(t));
+    const tempMin = dayTemps.length > 0 ? Math.min(...dayTemps) : 0;
+    const tempMax = dayTemps.length > 0 ? Math.max(...dayTemps) : 0;
     
-    // Letzte Nacht (00:00-05:00)
-    const nightHours = dayHours.filter(({ time }) => time.getHours() < 5);
-    const nightTemps = nightHours.map(({ idx }) => hourlyData.temperature_2m[idx]);
+    // Letzte Nacht (00:00-05:00 lokal)
+    const nightHours = dayHours.filter(({ timeStr }) => {
+      const hour = parseInt(timeStr.split('T')[1].substring(0, 2), 10);
+      return hour >= 0 && hour < 5;
+    });
+    const nightTemps = nightHours.map(({ idx }) => hourlyData.temperature_2m[idx]).filter(t => !isNaN(t));
     const nightMin = nightTemps.length > 0 ? Math.min(...nightTemps) : tempMin;
     
     // Berechne 7-Tage-Aggregate (für precip und ET0)
-    const sevenDaysAgo = new Date(dayStart);
+    const targetDate = new Date(targetDateStr + 'T12:00:00+02:00');
+    const sevenDaysAgo = new Date(targetDate);
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
+    
     const last7DaysHours = hourlyTimes
-      .map((time, idx) => ({ time, idx }))
-      .filter(({ time }) => time >= sevenDaysAgo && time < dayStart);
+      .map((timeStr: string, idx: number) => {
+        const dateStr = timeStr.split('T')[0];
+        return { dateStr, idx };
+      })
+      .filter(({ dateStr }) => dateStr >= sevenDaysAgoStr && dateStr < targetDateStr);
     
     const precip_7d = last7DaysHours.reduce((sum, { idx }) => 
       sum + (hourlyData.precipitation[idx] || 0), 0);
@@ -220,11 +237,16 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
     const et0_7d_avg = last7DaysHours.length > 0 ? et0_7d / last7DaysHours.length : 0;
     
     // 3-Tage Wind-Durchschnitt
-    const threeDaysAgo = new Date(dayStart);
+    const threeDaysAgo = new Date(targetDate);
     threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    const threeDaysAgoStr = threeDaysAgo.toISOString().split('T')[0];
+    
     const last3DaysHours = hourlyTimes
-      .map((time, idx) => ({ time, idx }))
-      .filter(({ time }) => time >= threeDaysAgo && time < dayStart);
+      .map((timeStr: string, idx: number) => {
+        const dateStr = timeStr.split('T')[0];
+        return { dateStr, idx };
+      })
+      .filter(({ dateStr }) => dateStr >= threeDaysAgoStr && dateStr < targetDateStr);
     const wind_3d_avg = last3DaysHours.length > 0
       ? last3DaysHours.reduce((sum, { idx }) => sum + (hourlyData.wind_speed_10m[idx] || 0), 0) / last3DaysHours.length
       : 3;
@@ -237,20 +259,21 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
       { slot: "evening", start: 16, end: 21 },  // 16:00-21:00 (21:00 included, not 21:59)
     ];
     
-    const result: any = { date: dayStart.toISOString().split("T")[0] };
+    const result: any = { date: targetDateStr };
     
     slots.forEach(({ slot, start, end }) => {
-      // Strikt: Stunden im Fenster [start, end] inklusiv
-      // Morning 05:00-10:59 bedeutet hours 5,6,7,8,9,10
-      // Noon 11:00-15:59 bedeutet hours 11,12,13,14,15
-      // Evening 16:00-21:00 bedeutet hours 16,17,18,19,20,21 (aber nur 21:00, nicht 21:59)
-      const slotHours = dayHours.filter(({ time }) => {
-        const h = time.getHours();
-        const m = time.getMinutes();
+      // Strikt: Stunden im Fenster [start, end] inklusiv (lokal)
+      // Morning 05:00-10:59 = hours 5,6,7,8,9,10
+      // Noon 11:00-15:59 = hours 11,12,13,14,15
+      // Evening 16:00-21:00 = hours 16,17,18,19,20,21 (nur 21:00, nicht 21:59)
+      const slotHours = dayHours.filter(({ timeStr }) => {
+        const timePart = timeStr.split('T')[1]; // HH:MM:SS format
+        const h = parseInt(timePart.substring(0, 2), 10);
+        const m = parseInt(timePart.substring(3, 5), 10);
         // Include hour if: h >= start AND (h < end OR (h === end AND m === 0))
         if (h < start) return false;
         if (h < end) return true;
-        if (h === end && m === 0) return true; // Include top of the hour
+        if (h === end && m === 0) return true;
         return false;
       });
       
@@ -306,12 +329,12 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
         precipitations: slotHours.map(({ idx }) => hourlyData.precipitation[idx]),
         wind_speeds: slotHours.map(({ idx }) => hourlyData.wind_speed_10m[idx]),
         radiations: slotHours.map(({ idx }) => hourlyData.shortwave_radiation[idx] || 0),
-        timestamps: slotHours.map(({ time }) => time.toISOString()),
+        timestamps: slotHours.map(({ timeStr }) => timeStr),
       };
       
-      // Morning rH (06:00-10:00)
-      const morningRhHours = dayHours.filter(({ time }) => {
-        const h = time.getHours();
+      // Morning rH (06:00-10:00 lokal)
+      const morningRhHours = dayHours.filter(({ timeStr }) => {
+        const h = parseInt(timeStr.split('T')[1].substring(0, 2), 10);
         return h >= 6 && h <= 10;
       });
       const rh_morning = morningRhHours.length > 0
@@ -366,10 +389,10 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
     return result as DayMatrix;
   };
   
-  // Generiere Matrizen für 3 Tage
-  const today = generateDayMatrix(todayStart);
-  const tomorrow = generateDayMatrix(tomorrowStart);
-  const dayAfterTomorrow = generateDayMatrix(dayAfterStart);
+  // Generiere Matrizen für 3 Tage (strict local date strings)
+  const today = generateDayMatrix(todayDate);
+  const tomorrow = generateDayMatrix(tomorrowDateStr);
+  const dayAfterTomorrow = generateDayMatrix(dayAfterDateStr);
   
   // Berechne Parity-Hashes
   const windowsData = {
