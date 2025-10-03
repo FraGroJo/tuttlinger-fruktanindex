@@ -1,19 +1,30 @@
 /**
  * Custom Hook: useFruktanData
- * Lädt und berechnet die Fruktan-Matrix-Daten
+ * Lädt und berechnet die Fruktan-Matrix-Daten mit Client-Side Caching (10 Min TTL)
  * 
  * WICHTIG: Dies ist eine Mock-Implementierung für die UI-Demonstration.
  * In der finalen Version wird hier Lovable Cloud mit Edge Functions genutzt.
  */
 
 import { useState, useEffect } from "react";
-import { type FruktanResponse, type DayMatrix, DEFAULT_LOCATION } from "@/types/fruktan";
+import { type FruktanResponse, type DayMatrix, type TrendDataPoint, type LocationData, DEFAULT_LOCATION } from "@/types/fruktan";
 import { calculateScore, getRiskLevel, generateReason, type ScoringInput } from "@/lib/scoring";
+
+// Cache-Interface
+interface CacheEntry {
+  data: FruktanResponse;
+  trendData: TrendDataPoint[];
+  timestamp: number;
+}
+
+// Cache-Storage (10 Min TTL)
+const CACHE_TTL = 10 * 60 * 1000; // 10 Minuten
+let cache: Map<string, CacheEntry> = new Map();
 
 /**
  * Generiert Mock-Wetterdaten für Demo-Zwecke
  */
-function generateMockData(emsMode: boolean): FruktanResponse {
+function generateMockData(emsMode: boolean, location: LocationData): FruktanResponse {
   const now = new Date();
   
   // Simuliere verschiedene Wetter-Szenarien für die drei Tage
@@ -90,9 +101,9 @@ function generateMockData(emsMode: boolean): FruktanResponse {
 
   return {
     location: {
-      name: DEFAULT_LOCATION.name,
-      lat: DEFAULT_LOCATION.lat,
-      lon: DEFAULT_LOCATION.lon,
+      name: location.name,
+      lat: location.lat,
+      lon: location.lon,
     },
     today: generateDayMatrix(0, scenarios[0]),
     tomorrow: generateDayMatrix(1, scenarios[1]),
@@ -102,20 +113,102 @@ function generateMockData(emsMode: boolean): FruktanResponse {
   };
 }
 
-export function useFruktanData(emsMode: boolean) {
+/**
+ * Generiert Mock-Trend-Daten (-72h bis +48h, stündlich)
+ */
+function generateMockTrendData(emsMode: boolean): TrendDataPoint[] {
+  const data: TrendDataPoint[] = [];
+  const now = new Date();
+  
+  // -72h bis +48h = 120 Stunden
+  for (let i = -72; i <= 48; i++) {
+    const timestamp = new Date(now.getTime() + i * 60 * 60 * 1000);
+    
+    // Simuliere Temperaturverlauf (Tag/Nacht-Zyklus)
+    const hour = timestamp.getHours();
+    const dayProgress = Math.sin((hour - 6) * Math.PI / 12); // Peak um 14 Uhr
+    const baseTemp = 12 + dayProgress * 8;
+    
+    // Füge Variation über Tage hinzu
+    const dayOffset = Math.floor(i / 24);
+    const tempVariation = Math.sin(dayOffset * Math.PI / 3) * 3;
+    const temperature = baseTemp + tempVariation;
+    
+    // Simuliere Strahlung (nur tagsüber)
+    const radiation = hour >= 6 && hour <= 20 
+      ? Math.max(0, 400 + dayProgress * 400 + Math.random() * 100)
+      : 0;
+    
+    // Frost-Flag
+    const isFrost = temperature <= 0;
+    
+    // Berechne vereinfachten Score basierend auf Temperatur und Strahlung
+    let score = 20; // Base
+    if (temperature <= 0) score += 30; // Frost
+    if (temperature <= 5) score += 15; // Kalt
+    if (hour >= 5 && hour <= 11 && temperature <= 5 && radiation > 300) {
+      score += 25; // Kalter sonniger Morgen
+    }
+    score += Math.min(20, radiation / 40); // Strahlungseffekt
+    
+    // Clamp
+    score = Math.max(0, Math.min(100, Math.round(score)));
+    
+    const level = getRiskLevel(score, emsMode);
+    
+    data.push({
+      timestamp: timestamp.toISOString(),
+      temperature,
+      radiation,
+      score,
+      level,
+      isFrost,
+    });
+  }
+  
+  return data;
+}
+
+export function useFruktanData(emsMode: boolean, location: LocationData = DEFAULT_LOCATION) {
   const [data, setData] = useState<FruktanResponse | null>(null);
+  const [trendData, setTrendData] = useState<TrendDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Simuliere API-Aufruf
+    // Cache-Key basierend auf Location und EMS-Modus
+    const cacheKey = `${location.lat},${location.lon},${emsMode}`;
+    
+    // Prüfe Cache
+    const cached = cache.get(cacheKey);
+    const now = Date.now();
+    
+    if (cached && (now - cached.timestamp) < CACHE_TTL) {
+      // Cache-Hit: Daten sofort verfügbar
+      setData(cached.data);
+      setTrendData(cached.trendData);
+      setLoading(false);
+      return;
+    }
+
+    // Cache-Miss oder expired: Neue Daten laden
     setLoading(true);
     setError(null);
 
     const timer = setTimeout(() => {
       try {
-        const mockData = generateMockData(emsMode);
+        const mockData = generateMockData(emsMode, location);
+        const mockTrend = generateMockTrendData(emsMode);
+        
+        // Speichere im Cache
+        cache.set(cacheKey, {
+          data: mockData,
+          trendData: mockTrend,
+          timestamp: Date.now(),
+        });
+        
         setData(mockData);
+        setTrendData(mockTrend);
       } catch (err) {
         setError("Fehler beim Laden der Daten");
       } finally {
@@ -124,7 +217,7 @@ export function useFruktanData(emsMode: boolean) {
     }, 800);
 
     return () => clearTimeout(timer);
-  }, [emsMode]);
+  }, [emsMode, location.lat, location.lon, location.name]);
 
-  return { data, loading, error };
+  return { data, trendData, loading, error };
 }

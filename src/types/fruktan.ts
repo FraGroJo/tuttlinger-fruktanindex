@@ -144,4 +144,14 @@ export interface TrendDataPoint {
   radiation: number;
   score: number;
   level: RiskLevel;
+  isFrost: boolean;
+}
+
+/**
+ * Location-Daten
+ */
+export interface LocationData {
+  name: string;
+  lat: number;
+  lon: number;
 }

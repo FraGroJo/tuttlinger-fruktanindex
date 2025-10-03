@@ -63,13 +63,53 @@ export function DayCard({ matrix, className = "" }: DayCardProps) {
                 <RiskBadge level={data.level} score={data.score} />
               </div>
               
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {data.reason}
-              </p>
+              <div>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-2">
+                  {data.reason}
+                </p>
+                
+                {/* Mini-Annotation: Hauptfaktoren */}
+                <div className="flex flex-wrap gap-1.5">
+                  {getKeyFactors(data.reason).map((factor, idx) => (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-muted text-muted-foreground"
+                    >
+                      {factor}
+                    </span>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         ))}
       </div>
     </Card>
   );
+}
+
+/**
+ * Extrahiert Schlüsselwörter aus der Begründung für Mini-Annotationen
+ */
+function getKeyFactors(reason: string): string[] {
+  const factors: string[] = [];
+  
+  const keywords = [
+    { pattern: /frost/i, label: "❄️ Frost" },
+    { pattern: /kalt/i, label: "🌡️ Kalt" },
+    { pattern: /sonn|strahl|einstrahlung/i, label: "☀️ Sonne" },
+    { pattern: /et0|verdunstung|trockenstress|trocken/i, label: "💧 Trockenstress" },
+    { pattern: /bewölk|wolken/i, label: "☁️ Bewölkung" },
+    { pattern: /niederschlag|regen/i, label: "🌧️ Niederschlag" },
+    { pattern: /wind/i, label: "💨 Wind" },
+    { pattern: /günstig|gering/i, label: "✅ Günstig" },
+  ];
+  
+  keywords.forEach(({ pattern, label }) => {
+    if (pattern.test(reason) && !factors.includes(label)) {
+      factors.push(label);
+    }
+  });
+  
+  return factors.slice(0, 3); // Max 3 Faktoren anzeigen
 }
