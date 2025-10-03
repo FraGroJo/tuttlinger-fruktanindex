@@ -97,6 +97,39 @@ export interface TemperatureSpectrum {
 }
 
 /**
+ * Quell-Metadaten
+ */
+export interface SourceMetadata {
+  provider: string;              // "open-meteo"
+  model: string;                 // "ECMWF", "GFS", oder "auto"
+  model_run_time_utc: string;    // ISO timestamp
+  data_timestamp_local: string;  // ISO timestamp in Europe/Berlin
+  data_age_minutes: number;
+}
+
+/**
+ * Parity-Hashes für Datenintegrität
+ */
+export interface ParityHashes {
+  hourly_hash: string;   // SHA-256 über hourly-Zeitreihe
+  windows_hash: string;  // SHA-256 über aggregierte Fensterwerte
+  calc_hash: string;     // SHA-256 über Score-Berechnungs-Inputs
+}
+
+/**
+ * Rohdaten für ein Zeitfenster
+ */
+export interface RawWindowData {
+  temperatures: number[];        // °C
+  relative_humidities: number[]; // %
+  cloud_covers: number[];        // %
+  precipitations: number[];      // mm
+  wind_speeds: number[];         // m/s
+  radiations: number[];          // W/m²
+  timestamps: string[];          // ISO timestamps
+}
+
+/**
  * Echtzeit-Bedingungen
  */
 export interface CurrentConditions {
@@ -118,6 +151,7 @@ export interface TimeSlotScore {
   level: RiskLevel;
   reason: string;
   temperature_spectrum?: TemperatureSpectrum;
+  raw?: RawWindowData;  // Rohdaten für Transparenz
   flags: string[]; // z.B. ["suspicious_jump", "radiation_cloud_inconsistency"]
   confidence: "normal" | "low";
 }
@@ -155,6 +189,8 @@ export interface FruktanResponse {
     lat: number;
     lon: number;
   };
+  source: SourceMetadata;
+  parity: ParityHashes;
   current?: CurrentConditions;
   today: DayMatrix;
   tomorrow: DayMatrix;

@@ -1,15 +1,27 @@
-import { type CurrentConditions } from "@/types/fruktan";
+import { type CurrentConditions, type SourceMetadata } from "@/types/fruktan";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Cloud, Droplets, Wind, Thermometer } from "lucide-react";
+import { Cloud, Droplets, Wind, Thermometer, Database } from "lucide-react";
 
 interface CurrentConditionsProps {
   current: CurrentConditions;
+  source: SourceMetadata;
   flags?: string[];
 }
 
-export function CurrentConditions({ current, flags = [] }: CurrentConditionsProps) {
+export function CurrentConditions({ current, source, flags = [] }: CurrentConditionsProps) {
   const hasMismatch = flags.includes("current_mismatch");
+  
+  const formatDateTime = (isoString: string) => {
+    return new Date(isoString).toLocaleString("de-DE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Europe/Berlin",
+    });
+  };
   
   return (
     <Card className="glass-card p-6 animate-fade-in">
@@ -33,6 +45,19 @@ export function CurrentConditions({ current, flags = [] }: CurrentConditionsProp
               Geringe Abweichung zu Vorhersage
             </Badge>
           )}
+        </div>
+
+        {/* Source Metadata */}
+        <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+          <Database className="h-3 w-3" />
+          <span>Stand: {formatDateTime(source.data_timestamp_local)} (Europe/Berlin)</span>
+        </div>
+        <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+          <span>Quelle: {source.provider}</span>
+          <span>•</span>
+          <span>Modell: {source.model}</span>
+          <span>•</span>
+          <span>Alter: {source.data_age_minutes} Min</span>
         </div>
 
         {/* Weitere Werte als Grid */}

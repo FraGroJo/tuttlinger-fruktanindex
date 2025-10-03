@@ -4,17 +4,19 @@
  * Zeitraum: -72h bis +48h mit Frost-Markierungen und Ampelfarben
  */
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend, Area } from "recharts";
 import { type TrendDataPoint } from "@/types/fruktan";
 import { Card } from "./ui/card";
-import { Snowflake } from "lucide-react";
+import { Badge } from "./ui/badge";
+import { Snowflake, AlertTriangle } from "lucide-react";
 
 interface TrendChartProps {
   data: TrendDataPoint[];
+  confidence?: "normal" | "low";
   className?: string;
 }
 
-export function TrendChart({ data, className = "" }: TrendChartProps) {
+export function TrendChart({ data, confidence = "normal", className = "" }: TrendChartProps) {
   // Formatiere Datum für X-Achse
   const formatDate = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -80,17 +82,34 @@ export function TrendChart({ data, className = "" }: TrendChartProps) {
   // Finde "Jetzt"-Zeitpunkt
   const now = new Date().toISOString();
 
+  // Konfidenzband-Daten (±5 bei low confidence)
+  const dataWithConfidence = confidence === "low" 
+    ? data.map(point => ({
+        ...point,
+        confidenceLower: Math.max(0, point.score - 5),
+        confidenceUpper: Math.min(100, point.score + 5),
+      }))
+    : data;
+
   return (
     <Card className={`p-6 ${className}`}>
-      <div className="mb-4">
-        <h3 className="text-lg font-semibold text-foreground mb-1">Trend-Verlauf</h3>
-        <p className="text-sm text-muted-foreground">
-          Fruktan-Risiko von vor 72 Stunden bis +48 Stunden (stündlich)
-        </p>
+      <div className="mb-4 flex items-start justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-foreground mb-1">Trend-Verlauf</h3>
+          <p className="text-sm text-muted-foreground">
+            Fruktan-Risiko von vor 72 Stunden bis +48 Stunden (stündlich)
+          </p>
+        </div>
+        {confidence === "low" && (
+          <Badge variant="outline" className="text-warning border-warning gap-1">
+            <AlertTriangle className="h-3 w-3" />
+            Erhöhte Unsicherheit
+          </Badge>
+        )}
       </div>
 
       <ResponsiveContainer width="100%" height={400}>
-        <LineChart data={data} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+        <LineChart data={dataWithConfidence} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
           <XAxis
             dataKey="timestamp"
@@ -111,6 +130,26 @@ export function TrendChart({ data, className = "" }: TrendChartProps) {
               return value;
             }}
           />
+          
+          {/* Konfidenzband (nur bei low confidence) */}
+          {confidence === "low" && (
+            <Area
+              type="monotone"
+              dataKey="confidenceUpper"
+              stroke="none"
+              fill="hsl(var(--warning))"
+              fillOpacity={0.1}
+            />
+          )}
+          {confidence === "low" && (
+            <Area
+              type="monotone"
+              dataKey="confidenceLower"
+              stroke="none"
+              fill="hsl(var(--warning))"
+              fillOpacity={0.1}
+            />
+          )}
           
           {/* Schwellenwerte als Referenzlinien */}
           <ReferenceLine y={40} stroke="hsl(var(--safe))" strokeDasharray="5 5" label="Grenze Grün" />

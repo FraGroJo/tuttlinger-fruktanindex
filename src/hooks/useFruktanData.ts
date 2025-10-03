@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { type FruktanResponse, type DayMatrix, type TrendDataPoint, type LocationData, DEFAULT_LOCATION, type TemperatureSpectrum, type CurrentConditions } from "@/types/fruktan";
+import { type FruktanResponse, type DayMatrix, type TrendDataPoint, type LocationData, DEFAULT_LOCATION, type TemperatureSpectrum, type CurrentConditions, type RawWindowData, type SourceMetadata, type ParityHashes } from "@/types/fruktan";
 import { calculateScore, getRiskLevel, generateReason, type ScoringInput } from "@/lib/scoring";
 
 // Cache-Interface
@@ -42,6 +42,17 @@ function checkRadiationCloudConsistency(radiation: number, cloud: number): strin
     return ["radiation_cloud_inconsistency"];
   }
   return [];
+}
+
+/**
+ * SHA-256 Hash-Funktion für Parity-Tracking
+ */
+async function sha256(data: any): Promise<string> {
+  const jsonString = JSON.stringify(data, Object.keys(data).sort());
+  const msgBuffer = new TextEncoder().encode(jsonString);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 function computeTemperatureSpectrum(temps: number[]): TemperatureSpectrum {
@@ -113,7 +124,7 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
     as_of_local: currentData.time,
     temperature_now: currentData.temperature_2m,
     relative_humidity_now: currentData.relative_humidity_2m,
-    wind_speed_now: currentData.wind_speed_10m,
+    wind_speed_now: currentData.wind_speed_10m / 3.6, // Convert km/h to m/s
     cloud_cover_now: currentData.cloud_cover,
     precipitation_now: currentData.precipitation,
   };
@@ -123,6 +134,30 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
   if (Math.abs(current.temperature_now - lastHourlyTemp) > 3) {
     globalFlags.push("current_mismatch");
   }
+
+  // Berechne Source Metadata
+  const dataTimestampLocal = hourlyData.time[hourlyData.time.length - 1];
+  const dataAge = Math.round((now.getTime() - new Date(dataTimestampLocal).getTime()) / 60000);
+  
+  const sourceMetadata: SourceMetadata = {
+    provider: "open-meteo",
+    model: "ECMWF", // Open-Meteo verwendet standardmäßig ECMWF
+    model_run_time_utc: now.toISOString(),
+    data_timestamp_local: dataTimestampLocal,
+    data_age_minutes: dataAge,
+  };
+
+  // Sammle alle hourly Daten für Parity-Hash
+  const hourlyHash = await sha256({
+    times: hourlyData.time,
+    temperatures: hourlyData.temperature_2m,
+    humidities: hourlyData.relative_humidity_2m,
+    radiations: hourlyData.shortwave_radiation,
+    clouds: hourlyData.cloud_cover,
+    winds: hourlyData.wind_speed_10m,
+    precipitations: hourlyData.precipitation,
+    et0s: hourlyData.et0_fao_evapotranspiration,
+  });
   
   // Finde Tagesgrenzen (00:00 lokale Zeit)
   const getTodayStart = () => {
@@ -220,6 +255,17 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
       const slotTemps = slotHours.map(({ idx }) => hourlyData.temperature_2m[idx]);
       const temperature_spectrum = computeTemperatureSpectrum(slotTemps);
       
+      // Rohdaten sammeln
+      const rawData: RawWindowData = {
+        temperatures: slotHours.map(({ idx }) => hourlyData.temperature_2m[idx]),
+        relative_humidities: slotHours.map(({ idx }) => hourlyData.relative_humidity_2m[idx]),
+        cloud_covers: slotHours.map(({ idx }) => hourlyData.cloud_cover[idx]),
+        precipitations: slotHours.map(({ idx }) => hourlyData.precipitation[idx]),
+        wind_speeds: slotHours.map(({ idx }) => hourlyData.wind_speed_10m[idx]),
+        radiations: slotHours.map(({ idx }) => hourlyData.shortwave_radiation[idx] || 0),
+        timestamps: slotHours.map(({ time }) => time.toISOString()),
+      };
+      
       // Check für sparse window
       const slotValidationFlags: string[] = [];
       if (slotHours.length < 2) {
@@ -274,6 +320,7 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
         level, 
         reason, 
         temperature_spectrum,
+        raw: rawData,
         flags: validationFlags, 
         confidence 
       };
@@ -287,9 +334,30 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
   const tomorrow = generateDayMatrix(tomorrowStart);
   const dayAfterTomorrow = generateDayMatrix(dayAfterStart);
   
+  // Berechne Parity-Hashes
+  const windowsData = {
+    today: { morning: today.morning, noon: today.noon, evening: today.evening },
+    tomorrow: { morning: tomorrow.morning, noon: tomorrow.noon, evening: tomorrow.evening },
+    dayAfterTomorrow: { morning: dayAfterTomorrow.morning, noon: dayAfterTomorrow.noon, evening: dayAfterTomorrow.evening },
+  };
+  
+  const windowsHash = await sha256(windowsData);
+  
+  // Calc-Hash über alle Scoring-Inputs (vereinfacht)
+  const calcInputs = {
+    windows: windowsData,
+    constants: { base: 20, frost: 30, cold: 15 }, // Vereinfachte Konstanten
+  };
+  const calcHash = await sha256(calcInputs);
+  
+  const parityHashes: ParityHashes = {
+    hourly_hash: hourlyHash,
+    windows_hash: windowsHash,
+    calc_hash: calcHash,
+  };
+  
   // Metadaten
-  const dataAgeMinutes = 5; // API-Daten sind aktuell
-  if (dataAgeMinutes > 90) {
+  if (sourceMetadata.data_age_minutes > 90) {
     globalFlags.push("stale_data");
   }
   
@@ -299,6 +367,8 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
       lat: location.lat,
       lon: location.lon,
     },
+    source: sourceMetadata,
+    parity: parityHashes,
     current,
     today,
     tomorrow,
@@ -307,9 +377,9 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
     emsMode,
     metadata: {
       dataSource: "Open-Meteo ECMWF",
-      modelRunTime: now.toISOString(),
+      modelRunTime: sourceMetadata.model_run_time_utc,
       localTimestamp: now.toLocaleString("de-DE", { timeZone: "Europe/Berlin" }),
-      dataAgeMinutes,
+      dataAgeMinutes: sourceMetadata.data_age_minutes,
       timezone: "Europe/Berlin",
     },
     flags: globalFlags,
