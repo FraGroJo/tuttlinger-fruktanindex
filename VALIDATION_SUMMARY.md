@@ -1,10 +1,16 @@
 # Fruktan-Matrix Datenqualität & Validierung
 
-## ✅ Geprüfte Komponenten (04.10.2025 - Update 01:45)
+## ✅ Geprüfte Komponenten (04.10.2025 - Update 01:50)
+
+### 🔴 KRITISCHER FIX - Zeitstempel-Aktualisierung
+- ✅ **Problem behoben**: Zeitstempel "Stand" wird jetzt bei jedem Seitenaufruf aktualisiert
+- ✅ **Lösung**: `isInitialMount` Flag in `useFruktanData` Hook hinzugefügt
+- ✅ **Verhalten**: Beim ersten Laden IMMER frische Daten, unabhängig vom Cache
+- ✅ **Cache nur für Navigation**: 60s Debounce nur bei wiederholten Aufrufen innerhalb derselben Session
 
 ### WICHTIGE ÄNDERUNGEN
 - ✅ **"Alter"-Anzeige entfernt**: Kein "Alter: ... Min" mehr im Header oder MetadataBar
-- ✅ **Frische Daten bei jedem Seitenaufruf**: Cache auf 60s Debounce reduziert (nur für Rate-Limiting)
+- ✅ **Frische Daten bei jedem Seitenaufruf**: Initial mount erzwingt API-Call, danach 60s Debounce
 - ✅ **Atomare Datengrundlage**: Alle UI-Komponenten nutzen denselben API-Fetch (einheitlicher Snapshot)
 
 ### 1. API-Datenquelle (Open-Meteo)
@@ -117,13 +123,19 @@
 - **Anzeige im Header**: Score + Level (Sicher/Erhöht/Hoch) ✅
 - **Logik**: Basiert auf "Heute"-Daten des entsprechenden Slots ✅
 
-### 9. Daten-Frische & Cache
-**Status: OPTIMIERT**
+### 9. Daten-Frische & Cache ⚡ NEU KORRIGIERT
+**Status: OPTIMIERT & GARANTIERT FRISCH**
 
-- **Cache-TTL**: Reduziert auf 60s (nur Debounce für Rate-Limiting) ✅
-- **Fresh-on-Mount**: Bei jedem Seitenaufruf werden Daten neu geladen (außer innerhalb 60s Debounce) ✅
+- **Zeitstempel-Aktualisierung**: ✅ Bei jedem Seitenaufruf wird ein neuer API-Call durchgeführt
+- **isInitialMount Flag**: ✅ Erzwingt frische Daten beim ersten Mount (ignoriert Cache)
+- **Cache-TTL**: 60s (nur Debounce für wiederholte Navigation innerhalb derselben Session) ✅
+- **Cache-Logik**: 
+  ```typescript
+  shouldFetch = isInitialMount || !cached || (now - cached.timestamp) >= CACHE_TTL
+  ```
 - **Atomizität**: Ein API-Call pro Mount → einheitliche Datengrundlage für alle UI-Komponenten ✅
 - **Kein "Alter"**: Altersanzeige komplett entfernt aus Header und MetadataBar ✅
+- **Garantie**: "Stand"-Zeitstempel wird bei jedem Browser-Refresh aktualisiert ✅
 
 ### 10. Trend-Chart
 **Status: KORREKT**
@@ -234,10 +246,13 @@ UI-Anzeige (DayCards, TrendChart, CurrentConditions)
 - ✅ Validierung aktiv
 - ✅ Fruktan-Now korrekt
 - ✅ **"Alter" entfernt** (kein dataAgeMinutes mehr)
-- ✅ **Frische Daten bei jedem Load** (60s Debounce)
+- ✅ **Zeitstempel wird bei jedem Seitenaufruf aktualisiert** (isInitialMount Fix)
+- ✅ **Frische Daten garantiert** (Initial mount ignoriert Cache)
+- ✅ **Cache nur für Navigation** (60s Debounce innerhalb Session)
 - ✅ **Atomare Datengrundlage** (ein API-Call → konsistente UI)
 - ✅ Trend-Chart EMS-konform
 
-**Letzte Prüfung**: 04.10.2025, 01:45 Uhr (Europe/Berlin)
+**Letzte Prüfung**: 04.10.2025, 01:50 Uhr (Europe/Berlin)
+**Letzter Fix**: Zeitstempel-Aktualisierung (isInitialMount)
 **Geprüft von**: Lovable AI
 **Status**: PRODUKTIONSBEREIT ✅

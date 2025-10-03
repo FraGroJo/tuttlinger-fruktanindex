@@ -525,6 +525,7 @@ export function useFruktanData(emsMode: boolean, location: LocationData = DEFAUL
   const [trendData, setTrendData] = useState<TrendDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isInitialMount, setIsInitialMount] = useState(true);
 
   useEffect(() => {
     // Cache-Key basierend auf Location und EMS-Modus
@@ -534,11 +535,12 @@ export function useFruktanData(emsMode: boolean, location: LocationData = DEFAUL
     const cached = cache.get(cacheKey);
     const now = Date.now();
     
-    // Bei jedem Mount frische Daten laden, außer innerhalb 60s Debounce-Window
-    const shouldFetch = !cached || (now - cached.timestamp) >= CACHE_TTL;
+    // Beim ersten Mount IMMER frische Daten laden (Seitenaufruf)
+    // Bei nachfolgenden Mounts nur wenn Cache abgelaufen ist (Navigation)
+    const shouldFetch = isInitialMount || !cached || (now - cached.timestamp) >= CACHE_TTL;
     
     if (!shouldFetch) {
-      // Debounce-Hit: Verwende gecachte Daten
+      // Debounce-Hit: Verwende gecachte Daten (nur bei Navigation, nicht bei initialem Seitenaufruf)
       setData(cached.data);
       setTrendData(cached.trendData);
       setLoading(false);
@@ -565,6 +567,7 @@ export function useFruktanData(emsMode: boolean, location: LocationData = DEFAUL
         setData(weatherData);
         setTrendData(trend);
         setLoading(false);
+        setIsInitialMount(false); // Nach erstem Laden nicht mehr als initial behandeln
       })
       .catch((err) => {
         console.error("Fehler beim Laden der Wetterdaten:", err);
