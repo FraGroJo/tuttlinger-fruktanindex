@@ -36,71 +36,88 @@ export function CurrentConditions({ current, source, flags = [] }: CurrentCondit
   };
   
   return (
-    <Card className="glass-card p-6 animate-fade-in">
-      <div className="space-y-4">
-        {/* Haupttemperatur */}
-        <div className="text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Thermometer className="h-6 w-6 text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">Jetzt</h2>
-          </div>
-          <div className="text-6xl font-bold text-foreground mb-2">
-            {formatNumber(current.temperature_now)}°C
-          </div>
-          {current.apparent_temperature !== undefined && (
-            <p className="text-sm text-muted-foreground">
-              Gefühlt: {formatNumber(current.apparent_temperature)}°C
-            </p>
-          )}
-          {hasMismatch && (
-            <Badge variant="outline" className="mt-2 text-warning border-warning">
-              Geringe Abweichung zu Vorhersage
-            </Badge>
-          )}
-        </div>
-
-        {/* Source Metadata */}
-        <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-          <Database className="h-3 w-3" />
-          <span>Quelle: {source.provider} • Stand: {formatDateTime(source.data_timestamp_local)} ({source.model})</span>
-        </div>
-
-        {/* Weitere Werte als Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-border">
-          {/* Luftfeuchtigkeit */}
-          <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-background/50">
-            <Droplets className="h-5 w-5 text-primary" />
-            <span className="text-2xl font-semibold text-foreground">
-              {formatNumber(current.relative_humidity_now, 0)}%
-            </span>
-            <span className="text-xs text-muted-foreground">Luftfeuchte</span>
+    <Card className="relative overflow-hidden shadow-lg border-2">
+      {/* Gradient Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
+      
+      <div className="relative p-8">
+        <div className="space-y-6">
+          {/* Haupttemperatur */}
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-3 mb-3">
+              <div className="p-3 rounded-full bg-primary/10 ring-4 ring-primary/5 animate-pulse">
+                <Thermometer className="h-8 w-8 text-primary" />
+              </div>
+              <h2 className="text-2xl font-bold text-foreground tracking-tight">Aktuelle Bedingungen</h2>
+            </div>
+            
+            {/* Temperature Display */}
+            <div className="relative inline-block">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 blur-3xl opacity-50 animate-pulse" />
+              <div className="relative text-7xl md:text-8xl font-black text-foreground mb-3 tracking-tight">
+                {formatNumber(current.temperature_now)}°
+              </div>
+            </div>
+            
+            {current.apparent_temperature !== undefined && (
+              <p className="text-base text-muted-foreground font-medium">
+                Gefühlt: {formatNumber(current.apparent_temperature)}°C
+              </p>
+            )}
+            {hasMismatch && (
+              <Badge variant="outline" className="mt-3 text-warning border-warning/50 bg-warning/5">
+                Geringe Abweichung zu Vorhersage
+              </Badge>
+            )}
           </div>
 
-          {/* Wind */}
-          <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-background/50">
-            <Wind className="h-5 w-5 text-primary" />
-            <span className="text-2xl font-semibold text-foreground">
-              {formatNumber(current.wind_speed_now)} km/h
-            </span>
-            <span className="text-xs text-muted-foreground">Wind</span>
+          {/* Source Metadata */}
+          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground bg-muted/30 px-4 py-2 rounded-full border">
+            <Database className="h-4 w-4" />
+            <span>Quelle: {source.provider} • Stand: {formatDateTime(source.data_timestamp_local)} ({source.model})</span>
           </div>
 
-          {/* Bewölkung */}
-          <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-background/50">
-            <Cloud className="h-5 w-5 text-primary" />
-            <span className="text-2xl font-semibold text-foreground">
-              {formatNumber(current.cloud_cover_now, 0)}%
-            </span>
-            <span className="text-xs text-muted-foreground">Bewölkung</span>
-          </div>
+          {/* Weather Metrics Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-6">
+            {/* Luftfeuchtigkeit */}
+            <div className="group relative flex flex-col items-center gap-3 p-5 rounded-2xl bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-2 border-blue-500/20 hover:border-blue-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10 hover:scale-105">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-all" />
+              <Droplets className="h-7 w-7 text-blue-500 relative z-10" />
+              <span className="text-3xl font-bold text-foreground relative z-10">
+                {formatNumber(current.relative_humidity_now, 0)}%
+              </span>
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider relative z-10">Luftfeuchte</span>
+            </div>
 
-          {/* Niederschlag */}
-          <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-background/50">
-            <Droplets className="h-5 w-5 text-primary" />
-            <span className="text-2xl font-semibold text-foreground">
-              {formatNumber(current.precipitation_now)} mm/h
-            </span>
-            <span className="text-xs text-muted-foreground">Niederschlag</span>
+            {/* Wind */}
+            <div className="group relative flex flex-col items-center gap-3 p-5 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-2 border-emerald-500/20 hover:border-emerald-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/10 hover:scale-105">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition-all" />
+              <Wind className="h-7 w-7 text-emerald-500 relative z-10" />
+              <span className="text-3xl font-bold text-foreground relative z-10">
+                {formatNumber(current.wind_speed_now)}
+              </span>
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider relative z-10">km/h Wind</span>
+            </div>
+
+            {/* Bewölkung */}
+            <div className="group relative flex flex-col items-center gap-3 p-5 rounded-2xl bg-gradient-to-br from-slate-500/10 to-slate-600/5 border-2 border-slate-500/20 hover:border-slate-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-slate-500/10 hover:scale-105">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-slate-500/5 rounded-full blur-2xl group-hover:bg-slate-500/10 transition-all" />
+              <Cloud className="h-7 w-7 text-slate-500 relative z-10" />
+              <span className="text-3xl font-bold text-foreground relative z-10">
+                {formatNumber(current.cloud_cover_now, 0)}%
+              </span>
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider relative z-10">Bewölkung</span>
+            </div>
+
+            {/* Niederschlag */}
+            <div className="group relative flex flex-col items-center gap-3 p-5 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-indigo-600/5 border-2 border-indigo-500/20 hover:border-indigo-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-indigo-500/10 hover:scale-105">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-indigo-500/5 rounded-full blur-2xl group-hover:bg-indigo-500/10 transition-all" />
+              <Droplets className="h-7 w-7 text-indigo-500 relative z-10" />
+              <span className="text-3xl font-bold text-foreground relative z-10">
+                {formatNumber(current.precipitation_now)}
+              </span>
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider relative z-10">mm/h Regen</span>
+            </div>
           </div>
         </div>
       </div>

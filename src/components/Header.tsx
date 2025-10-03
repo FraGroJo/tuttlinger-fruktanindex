@@ -125,16 +125,6 @@ export function Header({ location, onLocationChange, fruktanNow }: HeaderProps) 
             )}
           </div>
         </div>
-
-        {/* Info-Text */}
-        <div className="mt-4 p-3 bg-muted/30 rounded-lg border-l-4 border-primary">
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Diese Matrix berechnet das Fruktan-Risiko basierend auf aktuellen Wetterdaten.
-            <span className="ml-1 font-medium text-foreground">
-              EMS-Modus aktiv (0–29/30–59/60–100).
-            </span>
-          </p>
-        </div>
       </div>
     </header>
   );
