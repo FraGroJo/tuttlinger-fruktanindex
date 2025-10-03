@@ -7,6 +7,7 @@ import { Header } from "@/components/Header";
 import { MatrixGrid } from "@/components/MatrixGrid";
 import { TrendChart } from "@/components/TrendChart";
 import { MetadataBar } from "@/components/MetadataBar";
+import { CurrentConditions } from "@/components/CurrentConditions";
 import { useFruktanData } from "@/hooks/useFruktanData";
 import { Loader2, Download, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -94,14 +95,21 @@ const Index = () => {
 
       <main className="container mx-auto px-4 py-8">
         {/* Hero-Section */}
-        <div className="text-center py-8 px-4 mb-6">
-          <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            Weiderisiko heute – schnell verstehen & sicher entscheiden
+        <div className="text-center py-6 px-4 mb-6">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-3 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+            Fruktan-Radar Tuttlingen
           </h2>
-          <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
-            Präzise Fruktan-Risikoberechnung basierend auf aktuellen Wetterdaten und wissenschaftlichen Modellen
+          <p className="text-base text-muted-foreground max-w-2xl mx-auto">
+            Weiderisiko heute – schnell verstehen & sicher entscheiden
           </p>
         </div>
+
+        {/* Current Conditions */}
+        {data.current && (
+          <section className="mb-6 animate-fade-in">
+            <CurrentConditions current={data.current} flags={data.flags} />
+          </section>
+        )}
 
         {/* Metadaten & Stale-Banner */}
         <div className="mb-6">

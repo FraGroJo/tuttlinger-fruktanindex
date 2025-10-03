@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { type FruktanResponse, type DayMatrix, type TrendDataPoint, type LocationData, DEFAULT_LOCATION } from "@/types/fruktan";
+import { type FruktanResponse, type DayMatrix, type TrendDataPoint, type LocationData, DEFAULT_LOCATION, type TemperatureSpectrum, type CurrentConditions } from "@/types/fruktan";
 import { calculateScore, getRiskLevel, generateReason, type ScoringInput } from "@/lib/scoring";
 
 // Cache-Interface
@@ -42,6 +42,30 @@ function checkRadiationCloudConsistency(radiation: number, cloud: number): strin
     return ["radiation_cloud_inconsistency"];
   }
   return [];
+}
+
+function computeTemperatureSpectrum(temps: number[]): TemperatureSpectrum {
+  if (temps.length === 0) {
+    return { min: 0, max: 0, median: 0 };
+  }
+  
+  const sorted = [...temps].sort((a, b) => a - b);
+  const min = sorted[0];
+  const max = sorted[sorted.length - 1];
+  
+  // Median
+  const mid = Math.floor(sorted.length / 2);
+  const median = sorted.length % 2 === 0 
+    ? (sorted[mid - 1] + sorted[mid]) / 2 
+    : sorted[mid];
+  
+  // Perzentile (optional)
+  const p10Idx = Math.floor(sorted.length * 0.1);
+  const p90Idx = Math.floor(sorted.length * 0.9);
+  const p10 = sorted[p10Idx];
+  const p90 = sorted[p90Idx];
+  
+  return { min, max, median, p10, p90 };
 }
 
 // Cache-Storage (10 Min TTL)
@@ -82,6 +106,23 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
   
   // Validierung & Flag-Sammlung
   const globalFlags: string[] = [];
+  
+  // Parse current conditions
+  const currentData = data.current;
+  const current: CurrentConditions = {
+    as_of_local: currentData.time,
+    temperature_now: currentData.temperature_2m,
+    relative_humidity_now: currentData.relative_humidity_2m,
+    wind_speed_now: currentData.wind_speed_10m,
+    cloud_cover_now: currentData.cloud_cover,
+    precipitation_now: currentData.precipitation,
+  };
+  
+  // Validiere current vs. letzte hourly
+  const lastHourlyTemp = hourlyData.temperature_2m[hourlyData.temperature_2m.length - 1];
+  if (Math.abs(current.temperature_now - lastHourlyTemp) > 3) {
+    globalFlags.push("current_mismatch");
+  }
   
   // Finde Tagesgrenzen (00:00 lokale Zeit)
   const getTodayStart = () => {
@@ -175,6 +216,16 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
       const slotRh = slotHours.reduce((sum, { idx }) => 
         sum + (hourlyData.relative_humidity_2m[idx] || 0), 0) / slotHours.length;
       
+      // Temperatur-Spektrum für dieses Slot
+      const slotTemps = slotHours.map(({ idx }) => hourlyData.temperature_2m[idx]);
+      const temperature_spectrum = computeTemperatureSpectrum(slotTemps);
+      
+      // Check für sparse window
+      const slotValidationFlags: string[] = [];
+      if (slotHours.length < 2) {
+        slotValidationFlags.push("sparse_window");
+      }
+      
       // Morning rH (06:00-10:00)
       const morningRhHours = dayHours.filter(({ time }) => {
         const h = time.getHours();
@@ -201,7 +252,7 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
       const reason = generateReason(input, score);
       
       // Validierung
-      const validationFlags: string[] = [];
+      const validationFlags: string[] = [...slotValidationFlags];
       slotHours.forEach(({ idx }) => {
         const temp = hourlyData.temperature_2m[idx];
         const rh = hourlyData.relative_humidity_2m[idx];
@@ -217,7 +268,15 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
       
       const confidence = validationFlags.length > 0 ? "low" : "normal";
       
-      result[slot] = { slot, score, level, reason, flags: validationFlags, confidence };
+      result[slot] = { 
+        slot, 
+        score, 
+        level, 
+        reason, 
+        temperature_spectrum,
+        flags: validationFlags, 
+        confidence 
+      };
     });
     
     return result as DayMatrix;
@@ -240,6 +299,7 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
       lat: location.lat,
       lon: location.lon,
     },
+    current,
     today,
     tomorrow,
     dayAfterTomorrow,

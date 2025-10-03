@@ -86,6 +86,30 @@ export const DEFAULT_LOCATION = {
 } as const;
 
 /**
+ * Temperatur-Spektrum für ein Zeitfenster
+ */
+export interface TemperatureSpectrum {
+  min: number;      // °C
+  max: number;      // °C
+  median: number;   // °C
+  p10?: number;     // optional, 10. Perzentil
+  p90?: number;     // optional, 90. Perzentil
+}
+
+/**
+ * Echtzeit-Bedingungen
+ */
+export interface CurrentConditions {
+  as_of_local: string;          // "YYYY-MM-DDTHH:mm"
+  temperature_now: number;       // °C
+  relative_humidity_now: number; // %
+  wind_speed_now: number;        // m/s
+  cloud_cover_now: number;       // %
+  precipitation_now: number;     // mm/h
+  apparent_temperature?: number; // optional "feels like"
+}
+
+/**
  * Zeitfenster-Score mit Begründung und Validierungs-Flags
  */
 export interface TimeSlotScore {
@@ -93,6 +117,7 @@ export interface TimeSlotScore {
   score: number;
   level: RiskLevel;
   reason: string;
+  temperature_spectrum?: TemperatureSpectrum;
   flags: string[]; // z.B. ["suspicious_jump", "radiation_cloud_inconsistency"]
   confidence: "normal" | "low";
 }
@@ -130,6 +155,7 @@ export interface FruktanResponse {
     lat: number;
     lon: number;
   };
+  current?: CurrentConditions;
   today: DayMatrix;
   tomorrow: DayMatrix;
   dayAfterTomorrow: DayMatrix;

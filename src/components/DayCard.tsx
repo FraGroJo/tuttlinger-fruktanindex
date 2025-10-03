@@ -3,10 +3,16 @@
  * Zeigt die Fruktan-Matrix für einen einzelnen Tag an (3 Zeitfenster)
  */
 
-import { type DayMatrix } from "@/types/fruktan";
+import { type DayMatrix, type TemperatureSpectrum } from "@/types/fruktan";
 import { RiskBadge } from "./RiskBadge";
 import { Card } from "./ui/card";
-import { Sunrise, Sun, Sunset } from "lucide-react";
+import { Sunrise, Sun, Sunset, Thermometer } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface DayCardProps {
   matrix: DayMatrix;
@@ -79,6 +85,11 @@ export function DayCard({ matrix, className = "" }: DayCardProps) {
                 {data.reason}
               </p>
 
+              {/* Temperatur-Spektrum */}
+              {data.temperature_spectrum && (
+                <TemperatureSpectrumBar spectrum={data.temperature_spectrum} />
+              )}
+
               {/* Key Factors */}
               {keyFactors.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-2">
@@ -108,6 +119,55 @@ export function DayCard({ matrix, className = "" }: DayCardProps) {
         })}
       </div>
     </Card>
+  );
+}
+
+/**
+ * Temperatur-Spektrum-Leiste
+ */
+function TemperatureSpectrumBar({ spectrum }: { spectrum: TemperatureSpectrum }) {
+  const range = spectrum.max - spectrum.min;
+  const medianPercent = range > 0 ? ((spectrum.median - spectrum.min) / range) * 100 : 50;
+  
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="my-2 p-2 rounded bg-background/30 border border-border/30">
+            <div className="flex items-center gap-2 mb-1">
+              <Thermometer className="h-3 w-3 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Temperaturspanne</span>
+            </div>
+            <div className="relative h-6 bg-gradient-to-r from-blue-500/20 via-yellow-500/20 to-red-500/20 rounded-full overflow-hidden">
+              {/* Min-Max Linie */}
+              <div className="absolute inset-0 flex items-center px-2">
+                <div className="w-full h-0.5 bg-gradient-to-r from-blue-500 via-yellow-500 to-red-500" />
+              </div>
+              
+              {/* Median Marker */}
+              <div 
+                className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 bg-foreground rounded-full border-2 border-background shadow-lg"
+                style={{ left: `${medianPercent}%` }}
+              />
+            </div>
+            <div className="flex justify-between items-center mt-1 text-xs">
+              <span className="text-muted-foreground">{spectrum.min.toFixed(1)}°C</span>
+              <span className="font-semibold text-foreground">⌀ {spectrum.median.toFixed(1)}°C</span>
+              <span className="text-muted-foreground">{spectrum.max.toFixed(1)}°C</span>
+            </div>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>
+          <div className="text-xs space-y-1">
+            <div>Min: {spectrum.min.toFixed(1)}°C</div>
+            <div>Median: {spectrum.median.toFixed(1)}°C</div>
+            <div>Max: {spectrum.max.toFixed(1)}°C</div>
+            {spectrum.p10 !== undefined && <div>P10: {spectrum.p10.toFixed(1)}°C</div>}
+            {spectrum.p90 !== undefined && <div>P90: {spectrum.p90.toFixed(1)}°C</div>}
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
