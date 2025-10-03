@@ -8,7 +8,6 @@ import { MatrixGrid } from "@/components/MatrixGrid";
 import { TrendChart } from "@/components/TrendChart";
 import { MetadataBar } from "@/components/MetadataBar";
 import { CurrentConditions } from "@/components/CurrentConditions";
-import { ParityProof } from "@/components/ParityProof";
 import { useFruktanData } from "@/hooks/useFruktanData";
 import { Loader2, Download, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -111,11 +110,6 @@ const Index = () => {
             <CurrentConditions current={data.current} source={data.source} flags={data.flags} />
           </section>
         )}
-
-        {/* Parity Proof */}
-        <section className="mb-6">
-          <ParityProof data={data} />
-        </section>
 
         {/* Metadaten & Stale-Banner */}
         <div className="mb-6">

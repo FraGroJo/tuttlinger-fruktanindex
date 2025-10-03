@@ -55,26 +55,40 @@ async function sha256(data: any): Promise<string> {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+/**
+ * Berechnet Temperatur-Spektrum mit exakter Perzentil-Methode (keine Rundung)
+ * Basis: Nur hourly.temperature_2m Werte aus dem Zeitfenster
+ */
 function computeTemperatureSpectrum(temps: number[]): TemperatureSpectrum {
   if (temps.length === 0) {
     return { min: 0, max: 0, median: 0 };
+  }
+  
+  if (temps.length === 1) {
+    return { min: temps[0], max: temps[0], median: temps[0], p10: temps[0], p90: temps[0] };
   }
   
   const sorted = [...temps].sort((a, b) => a - b);
   const min = sorted[0];
   const max = sorted[sorted.length - 1];
   
-  // Median
-  const mid = Math.floor(sorted.length / 2);
-  const median = sorted.length % 2 === 0 
-    ? (sorted[mid - 1] + sorted[mid]) / 2 
-    : sorted[mid];
+  // Echter Median (50. Perzentil)
+  const mid = sorted.length / 2;
+  const median = sorted.length % 2 === 0
+    ? (sorted[Math.floor(mid) - 1] + sorted[Math.floor(mid)]) / 2
+    : sorted[Math.floor(mid)];
   
-  // Perzentile (optional)
-  const p10Idx = Math.floor(sorted.length * 0.1);
-  const p90Idx = Math.floor(sorted.length * 0.9);
-  const p10 = sorted[p10Idx];
-  const p90 = sorted[p90Idx];
+  // Lineare Interpolation für Perzentile
+  const getPercentile = (arr: number[], p: number): number => {
+    const index = (arr.length - 1) * p;
+    const lower = Math.floor(index);
+    const upper = Math.ceil(index);
+    const weight = index - lower;
+    return arr[lower] * (1 - weight) + arr[upper] * weight;
+  };
+  
+  const p10 = getPercentile(sorted, 0.1);
+  const p90 = getPercentile(sorted, 0.9);
   
   return { min, max, median, p10, p90 };
 }
@@ -215,28 +229,38 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
       ? last3DaysHours.reduce((sum, { idx }) => sum + (hourlyData.wind_speed_10m[idx] || 0), 0) / last3DaysHours.length
       : 3;
     
-    // Slot-spezifische Berechnung
+    // Slot-spezifische Berechnung (strikt lokal, Europe/Berlin)
+    // Morning: 05:00-10:59, Noon: 11:00-15:59, Evening: 16:00-21:00
     const slots: Array<{ slot: "morning" | "noon" | "evening"; start: number; end: number }> = [
-      { slot: "morning", start: 5, end: 11 },
-      { slot: "noon", start: 11, end: 16 },
-      { slot: "evening", start: 16, end: 21 },
+      { slot: "morning", start: 5, end: 10 },   // 05:00-10:59 (end hour inclusive with minutes < 60)
+      { slot: "noon", start: 11, end: 15 },     // 11:00-15:59
+      { slot: "evening", start: 16, end: 21 },  // 16:00-21:00 (21:00 included, not 21:59)
     ];
     
     const result: any = { date: dayStart.toISOString().split("T")[0] };
     
     slots.forEach(({ slot, start, end }) => {
+      // Strikt: Stunden im Fenster [start, end] inklusiv
+      // Morning 05:00-10:59 bedeutet hours 5,6,7,8,9,10
+      // Noon 11:00-15:59 bedeutet hours 11,12,13,14,15
+      // Evening 16:00-21:00 bedeutet hours 16,17,18,19,20,21 (aber nur 21:00, nicht 21:59)
       const slotHours = dayHours.filter(({ time }) => {
         const h = time.getHours();
-        return h >= start && h < end;
+        const m = time.getMinutes();
+        // Include hour if: h >= start AND (h < end OR (h === end AND m === 0))
+        if (h < start) return false;
+        if (h < end) return true;
+        if (h === end && m === 0) return true; // Include top of the hour
+        return false;
       });
       
       if (slotHours.length === 0) {
-        // Fallback für fehlende Daten
+        // Fallback für fehlende Daten - keine Darstellung
         result[slot] = {
           slot,
           score: 20,
           level: "safe",
-          reason: "Keine Daten verfügbar für dieses Zeitfenster",
+          reason: "Keine Stundenwerte verfügbar für dieses Zeitfenster.",
           temperature_spectrum: { min: 0, max: 0, median: 0 },
           raw: {
             temperatures: [],
@@ -253,7 +277,13 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
         return;
       }
       
-      // Aggregiere Werte für dieses Slot
+      // Check für sparse window (<2 Stunden)
+      const slotValidationFlags: string[] = [];
+      if (slotHours.length < 2) {
+        slotValidationFlags.push("sparse_window");
+      }
+      
+      // Aggregiere Werte für dieses Slot (nur aus hourly!)
       const slotRadiation = slotHours.reduce((sum, { idx }) => 
         sum + (hourlyData.shortwave_radiation[idx] || 0), 0) / slotHours.length;
       const slotCloud = slotHours.reduce((sum, { idx }) => 
@@ -261,11 +291,14 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
       const slotRh = slotHours.reduce((sum, { idx }) => 
         sum + (hourlyData.relative_humidity_2m[idx] || 0), 0) / slotHours.length;
       
-      // Temperatur-Spektrum für dieses Slot
-      const slotTemps = slotHours.map(({ idx }) => hourlyData.temperature_2m[idx]);
-      const temperature_spectrum = computeTemperatureSpectrum(slotTemps);
+      // Temperatur-Spektrum AUSSCHLIESSLICH aus hourly.temperature_2m
+      // KEIN daily mixing!
+      const slotTemps = slotHours.map(({ idx }) => hourlyData.temperature_2m[idx]).filter(t => !isNaN(t));
+      const temperature_spectrum = slotTemps.length >= 1 
+        ? computeTemperatureSpectrum(slotTemps)
+        : { min: 0, max: 0, median: 0 };
       
-      // Rohdaten sammeln
+      // Rohdaten sammeln (unveränderbar, keine Glättung)
       const rawData: RawWindowData = {
         temperatures: slotHours.map(({ idx }) => hourlyData.temperature_2m[idx]),
         relative_humidities: slotHours.map(({ idx }) => hourlyData.relative_humidity_2m[idx]),
@@ -275,12 +308,6 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
         radiations: slotHours.map(({ idx }) => hourlyData.shortwave_radiation[idx] || 0),
         timestamps: slotHours.map(({ time }) => time.toISOString()),
       };
-      
-      // Check für sparse window
-      const slotValidationFlags: string[] = [];
-      if (slotHours.length < 2) {
-        slotValidationFlags.push("sparse_window");
-      }
       
       // Morning rH (06:00-10:00)
       const morningRhHours = dayHours.filter(({ time }) => {
