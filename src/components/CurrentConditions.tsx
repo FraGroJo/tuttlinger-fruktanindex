@@ -13,14 +13,26 @@ export function CurrentConditions({ current, source, flags = [] }: CurrentCondit
   const hasMismatch = flags.includes("current_mismatch");
   
   const formatDateTime = (isoString: string) => {
-    return new Date(isoString).toLocaleString("de-DE", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      timeZone: "Europe/Berlin",
-    });
+    try {
+      return new Date(isoString).toLocaleString("de-DE", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "Europe/Berlin",
+      });
+    } catch {
+      return isoString;
+    }
+  };
+  
+  const formatNumber = (value: number | undefined, decimals = 1) => {
+    if (value === undefined || isNaN(value)) return "—";
+    return new Intl.NumberFormat('de-DE', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    }).format(value);
   };
   
   return (
@@ -33,11 +45,11 @@ export function CurrentConditions({ current, source, flags = [] }: CurrentCondit
             <h2 className="text-lg font-semibold text-foreground">Jetzt</h2>
           </div>
           <div className="text-6xl font-bold text-foreground mb-2">
-            {current.temperature_now.toFixed(1)}°C
+            {formatNumber(current.temperature_now)}°C
           </div>
-          {current.apparent_temperature && (
+          {current.apparent_temperature !== undefined && (
             <p className="text-sm text-muted-foreground">
-              Gefühlt: {current.apparent_temperature.toFixed(1)}°C
+              Gefühlt: {formatNumber(current.apparent_temperature)}°C
             </p>
           )}
           {hasMismatch && (
@@ -66,7 +78,7 @@ export function CurrentConditions({ current, source, flags = [] }: CurrentCondit
           <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-background/50">
             <Droplets className="h-5 w-5 text-primary" />
             <span className="text-2xl font-semibold text-foreground">
-              {Math.round(current.relative_humidity_now)}%
+              {formatNumber(current.relative_humidity_now, 0)}%
             </span>
             <span className="text-xs text-muted-foreground">Luftfeuchte</span>
           </div>
@@ -75,7 +87,7 @@ export function CurrentConditions({ current, source, flags = [] }: CurrentCondit
           <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-background/50">
             <Wind className="h-5 w-5 text-primary" />
             <span className="text-2xl font-semibold text-foreground">
-              {current.wind_speed_now.toFixed(1)} m/s
+              {formatNumber(current.wind_speed_now)} m/s
             </span>
             <span className="text-xs text-muted-foreground">Wind</span>
           </div>
@@ -84,7 +96,7 @@ export function CurrentConditions({ current, source, flags = [] }: CurrentCondit
           <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-background/50">
             <Cloud className="h-5 w-5 text-primary" />
             <span className="text-2xl font-semibold text-foreground">
-              {Math.round(current.cloud_cover_now)}%
+              {formatNumber(current.cloud_cover_now, 0)}%
             </span>
             <span className="text-xs text-muted-foreground">Bewölkung</span>
           </div>
@@ -93,7 +105,7 @@ export function CurrentConditions({ current, source, flags = [] }: CurrentCondit
           <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-background/50">
             <Droplets className="h-5 w-5 text-primary" />
             <span className="text-2xl font-semibold text-foreground">
-              {current.precipitation_now.toFixed(1)} mm/h
+              {formatNumber(current.precipitation_now)} mm/h
             </span>
             <span className="text-xs text-muted-foreground">Niederschlag</span>
           </div>

@@ -235,8 +235,18 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
         result[slot] = {
           slot,
           score: 20,
-          level: "green",
+          level: "safe",
           reason: "Keine Daten verfügbar für dieses Zeitfenster",
+          temperature_spectrum: { min: 0, max: 0, median: 0 },
+          raw: {
+            temperatures: [],
+            relative_humidities: [],
+            cloud_covers: [],
+            precipitations: [],
+            wind_speeds: [],
+            radiations: [],
+            timestamps: [],
+          },
           flags: ["missing_data"],
           confidence: "low",
         };

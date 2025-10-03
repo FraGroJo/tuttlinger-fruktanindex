@@ -73,9 +73,22 @@ export function DayCard({ matrix, className = "" }: DayCardProps) {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-3xl font-bold text-foreground">
-                    {data.score}
-                  </span>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="text-3xl font-bold text-foreground cursor-help">
+                          {data.temperature_spectrum?.median !== undefined 
+                            ? `${data.temperature_spectrum.median.toFixed(1)}°C`
+                            : "—"}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs">
+                          Median-Temperatur im Zeitfenster ({time})
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                   <RiskBadge level={data.level} score={data.score} />
                 </div>
               </div>
@@ -126,14 +139,27 @@ export function DayCard({ matrix, className = "" }: DayCardProps) {
  * Temperatur-Spektrum-Leiste
  */
 function TemperatureSpectrumBar({ spectrum }: { spectrum: TemperatureSpectrum }) {
-  const range = spectrum.max - spectrum.min;
-  const medianPercent = range > 0 ? ((spectrum.median - spectrum.min) / range) * 100 : 50;
+  // Safe-guards gegen undefined/NaN
+  const min = spectrum.min ?? 0;
+  const max = spectrum.max ?? 0;
+  const median = spectrum.median ?? ((min + max) / 2);
+  
+  const range = max - min;
+  const medianPercent = range > 0 ? ((median - min) / range) * 100 : 50;
+  
+  // Zahlformatierung
+  const formatTemp = (temp: number) => {
+    return new Intl.NumberFormat('de-DE', { 
+      minimumFractionDigits: 1, 
+      maximumFractionDigits: 1 
+    }).format(temp);
+  };
   
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="my-2 p-2 rounded bg-background/30 border border-border/30">
+          <div className="my-2 p-2 rounded bg-background/30 border border-border/30 cursor-help">
             <div className="flex items-center gap-2 mb-1">
               <Thermometer className="h-3 w-3 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Temperaturspanne</span>
@@ -151,19 +177,19 @@ function TemperatureSpectrumBar({ spectrum }: { spectrum: TemperatureSpectrum })
               />
             </div>
             <div className="flex justify-between items-center mt-1 text-xs">
-              <span className="text-muted-foreground">{spectrum.min.toFixed(1)}°C</span>
-              <span className="font-semibold text-foreground">⌀ {spectrum.median.toFixed(1)}°C</span>
-              <span className="text-muted-foreground">{spectrum.max.toFixed(1)}°C</span>
+              <span className="text-muted-foreground">{formatTemp(min)}°C</span>
+              <span className="font-semibold text-foreground">⌀ {formatTemp(median)}°C</span>
+              <span className="text-muted-foreground">{formatTemp(max)}°C</span>
             </div>
           </div>
         </TooltipTrigger>
         <TooltipContent>
           <div className="text-xs space-y-1">
-            <div>Min: {spectrum.min.toFixed(1)}°C</div>
-            <div>Median: {spectrum.median.toFixed(1)}°C</div>
-            <div>Max: {spectrum.max.toFixed(1)}°C</div>
-            {spectrum.p10 !== undefined && <div>P10: {spectrum.p10.toFixed(1)}°C</div>}
-            {spectrum.p90 !== undefined && <div>P90: {spectrum.p90.toFixed(1)}°C</div>}
+            <div>Min: {formatTemp(min)}°C</div>
+            <div>Median: {formatTemp(median)}°C</div>
+            <div>Max: {formatTemp(max)}°C</div>
+            {spectrum.p10 !== undefined && <div>P10: {formatTemp(spectrum.p10)}°C</div>}
+            {spectrum.p90 !== undefined && <div>P90: {formatTemp(spectrum.p90)}°C</div>}
           </div>
         </TooltipContent>
       </Tooltip>
