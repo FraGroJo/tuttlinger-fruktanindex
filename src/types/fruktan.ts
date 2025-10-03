@@ -1,0 +1,147 @@
+/**
+ * Fruktan-Matrix Typen
+ * Zentrale Typdefinitionen für die Anwendung
+ */
+
+export type TimeSlot = "morning" | "noon" | "evening";
+export type RiskLevel = "safe" | "moderate" | "high";
+
+/**
+ * Scoring-Konstanten
+ * Diese Werte steuern die Berechnung des Fruktan-Risikos
+ */
+export const SCORING_CONSTANTS = {
+  BASE: 20,
+  FROST_BONUS: 30,
+  COLD_BONUS: 15,
+  
+  // ET0-basierter Trockenstress
+  ET0_MIN: 3.0,
+  ET0_MAX: 6.0,
+  ET0_MAX_SCORE: 15,
+  
+  // Zusätzliche Trockenstress-Faktoren
+  DRY_PRECIP_THRESHOLD: 5,
+  DRY_PRECIP_BONUS: 5,
+  WIND_THRESHOLD: 6,
+  WIND_BONUS: 5,
+  MAX_DRYNESS_SCORE: 25,
+  
+  // Bewölkung
+  CLOUD_HIGH: 85,
+  CLOUD_MED: 50,
+  CLOUD_HIGH_RELIEF: -15,
+  CLOUD_MED_RELIEF: -7,
+  
+  // Diurnale Spanne
+  DIURNAL_MIN: 5,
+  DIURNAL_MAX: 15,
+  DIURNAL_MAX_BOOST: 10,
+  
+  // Hitze-Entlastung
+  HEAT_TEMP_THRESHOLD: 28,
+  HEAT_PRECIP_THRESHOLD: 15,
+  HEAT_ET0_THRESHOLD: 3.5,
+  HEAT_RELIEF: -10,
+  
+  // Morgen-spezifisch
+  MAX_MORNING_SUN: 20,
+  LOW_HUMIDITY_THRESHOLD: 55,
+  LOW_HUMIDITY_BOOST: 5,
+  MORNING_COLD_STACK: 10,
+  MORNING_FROST_STACK: 10,
+} as const;
+
+/**
+ * Ampel-Schwellen
+ */
+export const RISK_THRESHOLDS = {
+  STANDARD: {
+    SAFE_MAX: 39,
+    MODERATE_MAX: 69,
+  },
+  EMS: {
+    SAFE_MAX: 29,
+    MODERATE_MAX: 59,
+  },
+} as const;
+
+/**
+ * Zeitfenster-Definitionen (Stunden, lokale Zeit)
+ */
+export const TIME_WINDOWS = {
+  MORNING: { start: 5, end: 11 },
+  NOON: { start: 11, end: 16 },
+  EVENING: { start: 16, end: 21 },
+} as const;
+
+/**
+ * Standard-Koordinaten Tuttlingen
+ */
+export const DEFAULT_LOCATION = {
+  name: "Tuttlingen",
+  lat: 47.985,
+  lon: 8.82,
+  timezone: "Europe/Berlin",
+} as const;
+
+/**
+ * Zeitfenster-Score mit Begründung
+ */
+export interface TimeSlotScore {
+  slot: TimeSlot;
+  score: number;
+  level: RiskLevel;
+  reason: string;
+}
+
+/**
+ * Tages-Matrix (3 Zeitfenster)
+ */
+export interface DayMatrix {
+  date: string; // ISO-Format YYYY-MM-DD
+  morning: TimeSlotScore;
+  noon: TimeSlotScore;
+  evening: TimeSlotScore;
+}
+
+/**
+ * Wetter-Rohdaten für ein Zeitfenster
+ */
+export interface WeatherData {
+  temperature_min: number;
+  temperature_max: number;
+  radiation_avg: number;
+  cloud_cover_avg: number;
+  precipitation_sum: number;
+  wind_speed_avg: number;
+  relative_humidity_avg: number;
+  et0_avg: number;
+}
+
+/**
+ * Fruktan-API-Response
+ */
+export interface FruktanResponse {
+  location: {
+    name: string;
+    lat: number;
+    lon: number;
+  };
+  today: DayMatrix;
+  tomorrow: DayMatrix;
+  dayAfterTomorrow: DayMatrix;
+  generatedAt: string;
+  emsMode: boolean;
+}
+
+/**
+ * Trend-Datenpunkt (stündlich)
+ */
+export interface TrendDataPoint {
+  timestamp: string;
+  temperature: number;
+  radiation: number;
+  score: number;
+  level: RiskLevel;
+}

@@ -1,0 +1,265 @@
+/**
+ * Fruktan-Scoring-Logik
+ * Implementiert die zentrale Berechnungslogik für das Fruktan-Risiko
+ */
+
+import { SCORING_CONSTANTS, RISK_THRESHOLDS, type RiskLevel, type TimeSlot } from "@/types/fruktan";
+
+/**
+ * Hilfsfunktion: Lineare Interpolation (Map)
+ */
+export function mapRange(
+  value: number,
+  inMin: number,
+  inMax: number,
+  outMin: number,
+  outMax: number
+): number {
+  return ((value - inMin) * (outMax - outMin)) / (inMax - inMin) + outMin;
+}
+
+/**
+ * Hilfsfunktion: Clamp (Wert zwischen min und max begrenzen)
+ */
+export function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+/**
+ * Berechnet Bewölkungs-Entlastung (negativ = reduziert Risiko)
+ */
+export function calculateCloudRelief(cloudCoverPercent: number): number {
+  if (cloudCoverPercent >= SCORING_CONSTANTS.CLOUD_HIGH) {
+    return SCORING_CONSTANTS.CLOUD_HIGH_RELIEF;
+  }
+  if (cloudCoverPercent >= SCORING_CONSTANTS.CLOUD_MED) {
+    return SCORING_CONSTANTS.CLOUD_MED_RELIEF;
+  }
+  return 0;
+}
+
+/**
+ * Berechnet Trockenstress basierend auf ET0 und weiteren Faktoren
+ */
+export function calculateDrynessScore(
+  et0_7d_avg: number,
+  precip_7d_sum: number,
+  wind_3d_avg: number
+): number {
+  let score = 0;
+
+  // ET0-basierter Score (Hauptfaktor)
+  if (et0_7d_avg >= SCORING_CONSTANTS.ET0_MIN) {
+    const et0Score = mapRange(
+      et0_7d_avg,
+      SCORING_CONSTANTS.ET0_MIN,
+      SCORING_CONSTANTS.ET0_MAX,
+      0,
+      SCORING_CONSTANTS.ET0_MAX_SCORE
+    );
+    score += clamp(et0Score, 0, SCORING_CONSTANTS.ET0_MAX_SCORE);
+  }
+
+  // Niederschlags-Bonus
+  if (precip_7d_sum < SCORING_CONSTANTS.DRY_PRECIP_THRESHOLD) {
+    score += SCORING_CONSTANTS.DRY_PRECIP_BONUS;
+  }
+
+  // Wind-Bonus
+  if (wind_3d_avg > SCORING_CONSTANTS.WIND_THRESHOLD) {
+    score += SCORING_CONSTANTS.WIND_BONUS;
+  }
+
+  return clamp(score, 0, SCORING_CONSTANTS.MAX_DRYNESS_SCORE);
+}
+
+/**
+ * Berechnet Hitze-Entlastung (negativ bei hoher Temp + ausreichend Feuchtigkeit)
+ */
+export function calculateHeatRelief(
+  tempMax: number,
+  precip_7d_sum: number,
+  et0_7d_avg: number
+): number {
+  if (
+    tempMax >= SCORING_CONSTANTS.HEAT_TEMP_THRESHOLD &&
+    (precip_7d_sum >= SCORING_CONSTANTS.HEAT_PRECIP_THRESHOLD ||
+      et0_7d_avg <= SCORING_CONSTANTS.HEAT_ET0_THRESHOLD)
+  ) {
+    return SCORING_CONSTANTS.HEAT_RELIEF;
+  }
+  return 0;
+}
+
+/**
+ * Berechnet diurnale Spanne Boost
+ */
+export function calculateDiurnalBoost(diurnalRange: number): number {
+  if (diurnalRange <= SCORING_CONSTANTS.DIURNAL_MIN) return 0;
+  
+  const boost = mapRange(
+    diurnalRange,
+    SCORING_CONSTANTS.DIURNAL_MIN,
+    SCORING_CONSTANTS.DIURNAL_MAX,
+    0,
+    SCORING_CONSTANTS.DIURNAL_MAX_BOOST
+  );
+  return clamp(boost, 0, SCORING_CONSTANTS.DIURNAL_MAX_BOOST);
+}
+
+/**
+ * Interface für Scoring-Input
+ */
+export interface ScoringInput {
+  tempMin: number;
+  tempMax: number;
+  radiationMorning: number;
+  cloudCoverSlot: number;
+  precip_7d_sum: number;
+  wind_3d_avg: number;
+  relativeHumidityMorning: number;
+  et0_7d_avg: number;
+  slot: TimeSlot;
+}
+
+/**
+ * Haupt-Scoring-Funktion für ein Zeitfenster
+ */
+export function calculateScore(input: ScoringInput): number {
+  const {
+    tempMin,
+    tempMax,
+    radiationMorning,
+    cloudCoverSlot,
+    precip_7d_sum,
+    wind_3d_avg,
+    relativeHumidityMorning,
+    et0_7d_avg,
+    slot,
+  } = input;
+
+  // Basis-Faktoren
+  const base = SCORING_CONSTANTS.BASE;
+  const frostBonus = tempMin <= 0 ? SCORING_CONSTANTS.FROST_BONUS : 0;
+  const coldBonus = tempMin <= 5 ? SCORING_CONSTANTS.COLD_BONUS : 0;
+
+  // Trockenstress
+  const drynessScore = calculateDrynessScore(et0_7d_avg, precip_7d_sum, wind_3d_avg);
+
+  // Bewölkungs-Entlastung
+  const cloudRelief = calculateCloudRelief(cloudCoverSlot);
+
+  // Diurnale Spanne
+  const diurnalRange = tempMax - tempMin;
+  const diurnalBoost = calculateDiurnalBoost(diurnalRange);
+
+  // Hitze-Entlastung
+  const heatRelief = calculateHeatRelief(tempMax, precip_7d_sum, et0_7d_avg);
+
+  // Zeitfenster-spezifische Berechnung
+  let score = 0;
+
+  if (slot === "morning") {
+    // Morgen: Maximale Sensibilität
+    const morningSunFactor = clamp(
+      mapRange(radiationMorning, 0, 800, 0, SCORING_CONSTANTS.MAX_MORNING_SUN),
+      0,
+      SCORING_CONSTANTS.MAX_MORNING_SUN
+    );
+    
+    const lowHumidityBoost =
+      relativeHumidityMorning < SCORING_CONSTANTS.LOW_HUMIDITY_THRESHOLD
+        ? SCORING_CONSTANTS.LOW_HUMIDITY_BOOST
+        : 0;
+    
+    let morningColdStack = 0;
+    if (coldBonus > 0) morningColdStack += SCORING_CONSTANTS.MORNING_COLD_STACK;
+    if (frostBonus > 0) morningColdStack += SCORING_CONSTANTS.MORNING_FROST_STACK;
+
+    score =
+      base +
+      frostBonus +
+      coldBonus +
+      morningSunFactor +
+      lowHumidityBoost +
+      morningColdStack +
+      drynessScore +
+      cloudRelief +
+      diurnalBoost +
+      heatRelief;
+  } else if (slot === "noon") {
+    // Mittags: Reduzierte Faktoren
+    score =
+      base +
+      0.5 * coldBonus +
+      0.5 * frostBonus +
+      0.6 * drynessScore +
+      0.5 * diurnalBoost +
+      cloudRelief +
+      heatRelief;
+  } else {
+    // Abends: Stark reduzierte Faktoren
+    score =
+      base +
+      0.3 * coldBonus +
+      0.3 * frostBonus +
+      0.5 * drynessScore +
+      0.3 * diurnalBoost +
+      cloudRelief +
+      heatRelief;
+  }
+
+  return Math.round(clamp(score, 0, 100));
+}
+
+/**
+ * Bestimmt Ampel-Level basierend auf Score und EMS-Modus
+ */
+export function getRiskLevel(score: number, emsMode: boolean): RiskLevel {
+  const thresholds = emsMode ? RISK_THRESHOLDS.EMS : RISK_THRESHOLDS.STANDARD;
+
+  if (score <= thresholds.SAFE_MAX) return "safe";
+  if (score <= thresholds.MODERATE_MAX) return "moderate";
+  return "high";
+}
+
+/**
+ * Generiert Begründungstext basierend auf den Scoring-Faktoren
+ */
+export function generateReason(input: ScoringInput, score: number): string {
+  const { tempMin, radiationMorning, cloudCoverSlot, et0_7d_avg, precip_7d_sum, slot } = input;
+
+  // Frost + Sonne am Morgen
+  if (slot === "morning" && tempMin <= 0 && radiationMorning > 400) {
+    return `Frostnacht (${tempMin.toFixed(1)} °C) und sonniger Morgen → erhöhtes Risiko am Vormittag.`;
+  }
+
+  // Kalte Nacht + Sonne am Morgen
+  if (slot === "morning" && tempMin <= 5 && tempMin > 0 && radiationMorning > 400) {
+    return `Kalte Nacht (${tempMin.toFixed(1)} °C) und hohe Einstrahlung → erhöhtes Risiko am Vormittag.`;
+  }
+
+  // Hoher ET0-Stress
+  if (et0_7d_avg >= 5.5 && cloudCoverSlot < 60) {
+    return `Hohe ET0-Belastung über 7 Tage (${et0_7d_avg.toFixed(1)} mm/Tag) und geringe Bewölkung → anhaltend erhöhtes Risiko.`;
+  }
+
+  // Trockenheit
+  if (precip_7d_sum < 5 && et0_7d_avg > 4) {
+    return `Anhaltende Trockenheit (${precip_7d_sum.toFixed(1)} mm/7d) und hohe Verdunstung → erhöhtes Risiko.`;
+  }
+
+  // Starke Bewölkung reduziert Risiko
+  if (cloudCoverSlot >= 80) {
+    return `Stark bewölkt (${cloudCoverSlot.toFixed(0)} %) → Risiko reduziert.`;
+  }
+
+  // Standard-Bewertung
+  if (score < 40) {
+    return "Günstige Bedingungen, geringes Fruktan-Risiko.";
+  } else if (score < 70) {
+    return "Moderate Risiko-Faktoren, Vorsicht empfohlen.";
+  } else {
+    return "Mehrere ungünstige Faktoren kombiniert → hohes Risiko.";
+  }
+}
