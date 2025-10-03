@@ -39,50 +39,73 @@ export function DayCard({ matrix, className = "" }: DayCardProps) {
   else if (diffDays === 2) dayLabel = "Übermorgen";
 
   return (
-    <Card className={`p-6 hover:shadow-lg transition-all duration-300 ${className}`}>
-      {/* Header */}
-      <div className="mb-4 border-b pb-3">
-        <h3 className="text-lg font-semibold text-foreground">{dayLabel}</h3>
-        <p className="text-sm text-muted-foreground">{formattedDate}</p>
+    <Card className={`overflow-hidden backdrop-blur-sm bg-card/80 border-2 shadow-xl hover:shadow-2xl transition-all duration-300 rounded-2xl ${className}`}>
+      {/* Header mit Glassmorphism */}
+      <div className="bg-gradient-to-r from-primary/20 to-primary/10 px-4 py-3 border-b border-border/50 backdrop-blur-sm">
+        <h3 className="font-semibold text-foreground text-lg">{dayLabel}</h3>
+        <p className="text-xs text-muted-foreground">{formattedDate}</p>
       </div>
 
       {/* Zeitfenster */}
-      <div className="space-y-4">
-        {slots.map(({ data, icon: Icon, label, time }) => (
-          <div key={data.slot} className="flex items-start gap-4 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-            <div className="flex-shrink-0 mt-1">
-              <Icon className="w-5 h-5 text-muted-foreground" />
-            </div>
-            
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <p className="font-medium text-foreground">{label}</p>
-                  <p className="text-xs text-muted-foreground">{time}</p>
+      <div className="p-5 space-y-4">
+        {slots.map(({ data, icon: Icon, label, time }) => {
+          const keyFactors = getKeyFactors(data.reason);
+          const hasWarnings = data.flags && (data.flags.length > 0 || data.confidence === "low");
+
+          return (
+            <div
+              key={data.slot}
+              className="p-4 rounded-xl bg-gradient-to-br from-muted/40 to-muted/20 hover:from-muted/60 hover:to-muted/30 transition-all duration-200 border border-border/50"
+            >
+              {/* Slot-Header */}
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Icon className="w-5 h-5 text-muted-foreground" />
+                  <div>
+                    <span className="text-sm font-semibold text-foreground">{label}</span>
+                    <p className="text-xs text-muted-foreground">{time}</p>
+                  </div>
                 </div>
-                <RiskBadge level={data.level} score={data.score} />
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl font-bold text-foreground">
+                    {data.score}
+                  </span>
+                  <RiskBadge level={data.level} score={data.score} />
+                </div>
               </div>
-              
-              <div>
-                <p className="text-sm text-muted-foreground leading-relaxed mb-2">
-                  {data.reason}
-                </p>
-                
-                {/* Mini-Annotation: Hauptfaktoren */}
-                <div className="flex flex-wrap gap-1.5">
-                  {getKeyFactors(data.reason).map((factor, idx) => (
+
+              {/* Begründung */}
+              <p className="text-sm text-muted-foreground leading-relaxed mb-3">
+                {data.reason}
+              </p>
+
+              {/* Key Factors */}
+              {keyFactors.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {keyFactors.map((factor, idx) => (
                     <span
                       key={idx}
-                      className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-muted text-muted-foreground"
+                      className="px-2.5 py-1 text-xs font-medium rounded-full bg-primary/15 text-primary border border-primary/30 shadow-sm"
                     >
                       {factor}
                     </span>
                   ))}
                 </div>
-              </div>
+              )}
+
+              {/* Validierungs-Warnung */}
+              {hasWarnings && (
+                <div className="mt-3 p-2 bg-warning/10 border border-warning/30 rounded-lg">
+                  <p className="text-xs text-warning font-medium flex items-center gap-1">
+                    <span className="inline-block w-1 h-1 rounded-full bg-warning"></span>
+                    Eingeschränkte Datenqualität
+                    {data.confidence === "low" && " • Vertrauen: niedrig"}
+                  </p>
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </Card>
   );

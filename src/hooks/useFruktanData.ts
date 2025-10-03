@@ -17,6 +17,35 @@ interface CacheEntry {
   timestamp: number;
 }
 
+/**
+ * Validierungs-Hilfsfunktionen
+ */
+function validateBounds(temp: number, rh: number, cloud: number, precip: number, wind: number): string[] {
+  const flags: string[] = [];
+  if (temp < -30 || temp > 45) flags.push("temp_out_of_bounds");
+  if (rh < 0 || rh > 100) flags.push("rh_out_of_bounds");
+  if (cloud < 0 || cloud > 100) flags.push("cloud_out_of_bounds");
+  if (precip < 0) flags.push("precip_out_of_bounds");
+  if (wind < 0 || wind > 60) flags.push("wind_out_of_bounds");
+  return flags;
+}
+
+function checkSteps(prevTemp: number, currTemp: number, prevRh: number, currRh: number, prevWind: number, currWind: number): string[] {
+  const flags: string[] = [];
+  if (Math.abs(currTemp - prevTemp) > 8) flags.push("suspicious_temp_jump");
+  if (Math.abs(currRh - prevRh) > 25) flags.push("suspicious_rh_jump");
+  if (Math.abs(currWind - prevWind) > 15) flags.push("suspicious_wind_jump");
+  return flags;
+}
+
+function checkRadiationCloudConsistency(radiation: number, cloud: number): string[] {
+  // Hohe Strahlung (>500) bei sehr hoher Bewölkung (>95%) ist inkonsistent
+  if (radiation > 500 && cloud > 95) {
+    return ["radiation_cloud_inconsistency"];
+  }
+  return [];
+}
+
 // Cache-Storage (10 Min TTL)
 const CACHE_TTL = 10 * 60 * 1000; // 10 Minuten
 let cache: Map<string, CacheEntry> = new Map();
@@ -93,11 +122,28 @@ function generateMockData(emsMode: boolean, location: LocationData): FruktanResp
       const level = getRiskLevel(score, emsMode);
       const reason = generateReason(input, score);
 
-      result[slot] = { slot, score, level, reason };
+      // Validierung
+      const validationFlags: string[] = [];
+      validationFlags.push(...validateBounds(scenario.tempMin, scenario.rh_morning, scenario.cloudCover + cloudMod, scenario.precip_7d, scenario.wind_3d));
+      validationFlags.push(...checkRadiationCloudConsistency(scenario.radiationMorning, scenario.cloudCover + cloudMod));
+      
+      const confidence = validationFlags.length > 0 ? "low" : "normal";
+
+      result[slot] = { slot, score, level, reason, flags: validationFlags, confidence };
     });
 
     return result as DayMatrix;
   };
+
+  // Metadaten
+  const modelRunTime = new Date(now.getTime() - 30 * 60 * 1000); // Modell-Lauf vor 30 Min (simuliert)
+  const dataAgeMinutes = 25; // Simuliert ~25 Min alte Daten
+  const globalFlags: string[] = [];
+  
+  // Stale-Check (>90 Min)
+  if (dataAgeMinutes > 90) {
+    globalFlags.push("stale_data");
+  }
 
   return {
     location: {
@@ -110,6 +156,15 @@ function generateMockData(emsMode: boolean, location: LocationData): FruktanResp
     dayAfterTomorrow: generateDayMatrix(2, scenarios[2]),
     generatedAt: now.toISOString(),
     emsMode,
+    metadata: {
+      dataSource: "Open-Meteo ECMWF (Mock)",
+      modelRunTime: modelRunTime.toISOString(),
+      localTimestamp: now.toLocaleString("de-DE", { timeZone: "Europe/Berlin" }),
+      dataAgeMinutes,
+      timezone: "Europe/Berlin",
+    },
+    flags: globalFlags,
+    confidence: globalFlags.length > 0 ? "low" : "normal",
   };
 }
 
@@ -119,6 +174,10 @@ function generateMockData(emsMode: boolean, location: LocationData): FruktanResp
 function generateMockTrendData(emsMode: boolean): TrendDataPoint[] {
   const data: TrendDataPoint[] = [];
   const now = new Date();
+  
+  let prevTemp = 12;
+  let prevRh = 60;
+  let prevWind = 5;
   
   // -72h bis +48h = 120 Stunden
   for (let i = -72; i <= 48; i++) {
@@ -139,6 +198,11 @@ function generateMockTrendData(emsMode: boolean): TrendDataPoint[] {
       ? Math.max(0, 400 + dayProgress * 400 + Math.random() * 100)
       : 0;
     
+    // Simuliere rH und Wind
+    const rh = 50 + Math.sin(hour * Math.PI / 12) * 20 + Math.random() * 10;
+    const wind = 3 + Math.random() * 4;
+    const cloudCover = 30 + Math.random() * 40;
+    
     // Frost-Flag
     const isFrost = temperature <= 0;
     
@@ -150,6 +214,17 @@ function generateMockTrendData(emsMode: boolean): TrendDataPoint[] {
       score += 25; // Kalter sonniger Morgen
     }
     score += Math.min(20, radiation / 40); // Strahlungseffekt
+    
+    // Validierung (nur für einzelne Stichproben zur Demo)
+    const validationFlags: string[] = [];
+    if (i > -72) {
+      validationFlags.push(...checkSteps(prevTemp, temperature, prevRh, rh, prevWind, wind));
+    }
+    validationFlags.push(...checkRadiationCloudConsistency(radiation, cloudCover));
+    
+    prevTemp = temperature;
+    prevRh = rh;
+    prevWind = wind;
     
     // Clamp
     score = Math.max(0, Math.min(100, Math.round(score)));

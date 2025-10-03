@@ -45,6 +45,9 @@ All colors MUST be HSL.
     --risk-moderate-bg: 38 92% 95%;
     --risk-high: 0 72% 51%;
     --risk-high-bg: 0 72% 95%;
+    
+    /* Warning-Farbe für Stale-Daten */
+    --warning: 38 92% 50%;
 
     /* Schatten & Übergänge */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -88,6 +91,8 @@ All colors MUST be HSL.
     --risk-moderate-bg: 38 50% 15%;
     --risk-high: 0 70% 55%;
     --risk-high-bg: 0 50% 15%;
+    
+    --warning: 38 85% 55%;
   }
 }
 

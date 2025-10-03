@@ -86,13 +86,15 @@ export const DEFAULT_LOCATION = {
 } as const;
 
 /**
- * Zeitfenster-Score mit Begründung
+ * Zeitfenster-Score mit Begründung und Validierungs-Flags
  */
 export interface TimeSlotScore {
   slot: TimeSlot;
   score: number;
   level: RiskLevel;
   reason: string;
+  flags: string[]; // z.B. ["suspicious_jump", "radiation_cloud_inconsistency"]
+  confidence: "normal" | "low";
 }
 
 /**
@@ -120,7 +122,7 @@ export interface WeatherData {
 }
 
 /**
- * Fruktan-API-Response
+ * Fruktan-API-Response mit Metadaten und Validierung
  */
 export interface FruktanResponse {
   location: {
@@ -133,6 +135,15 @@ export interface FruktanResponse {
   dayAfterTomorrow: DayMatrix;
   generatedAt: string;
   emsMode: boolean;
+  metadata: {
+    dataSource: string; // z.B. "Open-Meteo ECMWF"
+    modelRunTime: string; // UTC
+    localTimestamp: string; // Europe/Berlin
+    dataAgeMinutes: number;
+    timezone: string;
+  };
+  flags: string[]; // globale Flags (z.B. "stale_data")
+  confidence: "normal" | "low";
 }
 
 /**

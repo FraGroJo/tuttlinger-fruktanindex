@@ -55,6 +55,7 @@ export default {
           high: "hsl(var(--risk-high))",
           "high-bg": "hsl(var(--risk-high-bg))",
         },
+        warning: "hsl(var(--warning))",
       },
       boxShadow: {
         sm: "var(--shadow-sm)",

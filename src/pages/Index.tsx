@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Header } from "@/components/Header";
 import { MatrixGrid } from "@/components/MatrixGrid";
 import { TrendChart } from "@/components/TrendChart";
+import { MetadataBar } from "@/components/MetadataBar";
 import { useFruktanData } from "@/hooks/useFruktanData";
 import { Loader2, Download, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -83,7 +84,7 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       <Header
         location={location}
         emsMode={emsMode}
@@ -92,7 +93,48 @@ const Index = () => {
       />
 
       <main className="container mx-auto px-4 py-8">
-        {/* Matrix-Karten */}
+        {/* Hero-Section */}
+        <div className="text-center py-8 px-4 mb-6">
+          <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+            Weiderisiko heute – schnell verstehen & sicher entscheiden
+          </h2>
+          <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
+            Präzise Fruktan-Risikoberechnung basierend auf aktuellen Wetterdaten und wissenschaftlichen Modellen
+          </p>
+        </div>
+
+        {/* Metadaten & Stale-Banner */}
+        <div className="mb-6">
+          <MetadataBar
+            metadata={data.metadata}
+            flags={data.flags}
+            onRefresh={() => window.location.reload()}
+          />
+        </div>
+
+        {/* Export-Buttons */}
+        <div className="flex flex-wrap gap-3 justify-end mb-6">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportCSV}
+            className="gap-2"
+          >
+            <Download className="w-4 h-4" />
+            CSV exportieren
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportPDF}
+            className="gap-2"
+          >
+            <FileText className="w-4 h-4" />
+            PDF-Bericht
+          </Button>
+        </div>
+
+        {/* Matrix-Karten mit Glassmorphism */}
         <section className="mb-8">
           <MatrixGrid
             today={data.today}
@@ -105,41 +147,6 @@ const Index = () => {
         <section className="mb-8">
           <TrendChart data={trendData} />
         </section>
-
-        {/* Export-Bereich */}
-        <section className="bg-card rounded-lg border p-6 shadow-sm">
-          <h2 className="text-xl font-semibold mb-4 text-foreground">Export & Berichte</h2>
-          <div className="flex flex-wrap gap-4">
-            <Button 
-              variant="outline" 
-              className="gap-2"
-              onClick={handleExportCSV}
-              disabled={!data}
-            >
-              <Download className="w-4 h-4" />
-              CSV exportieren
-            </Button>
-            <Button 
-              variant="outline" 
-              className="gap-2"
-              onClick={handleExportPDF}
-              disabled={!data}
-            >
-              <FileText className="w-4 h-4" />
-              PDF-Bericht
-            </Button>
-          </div>
-          <p className="mt-4 text-sm text-muted-foreground">
-            Exportiere die Fruktan-Matrix als CSV-Datei oder druckfertigen PDF-Bericht.
-          </p>
-        </section>
-
-        {/* Info-Footer */}
-        <footer className="mt-8 text-center text-sm text-muted-foreground">
-          <p>
-            Datenquelle: Open-Meteo API • Aktualisiert: {new Date(data.generatedAt).toLocaleString("de-DE")}
-          </p>
-        </footer>
       </main>
     </div>
   );
