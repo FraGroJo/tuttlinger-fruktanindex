@@ -16,9 +16,8 @@ import { exportToCSV, exportToPDF } from "@/lib/export";
 import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
-  const [emsMode, setEmsMode] = useState(false);
   const [location, setLocation] = useState<LocationData>(DEFAULT_LOCATION);
-  const { data, trendData, loading, error } = useFruktanData(emsMode, location);
+  const { data, trendData, loading, error } = useFruktanData(true, location);
   const { toast } = useToast();
 
   const handleExportCSV = () => {
@@ -47,7 +46,7 @@ const Index = () => {
       exportToPDF(
         [data.today, data.tomorrow, data.dayAfterTomorrow],
         location.name,
-        emsMode
+        true
       );
       toast({
         title: "PDF generiert",
@@ -88,9 +87,8 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       <Header
         location={location}
-        emsMode={emsMode}
-        onEmsToggle={setEmsMode}
         onLocationChange={setLocation}
+        fruktanNow={data?.fruktanNow}
       />
 
       <main className="container mx-auto px-4 py-8">

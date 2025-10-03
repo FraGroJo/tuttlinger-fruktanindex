@@ -4,8 +4,6 @@
  */
 
 import { MapPin, AlertCircle, Search } from "lucide-react";
-import { Switch } from "./ui/switch";
-import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { InfoModal } from "./InfoModal";
@@ -14,12 +12,14 @@ import { useState } from "react";
 
 interface HeaderProps {
   location: LocationData;
-  emsMode: boolean;
-  onEmsToggle: (enabled: boolean) => void;
   onLocationChange: (location: LocationData) => void;
+  fruktanNow?: {
+    score: number;
+    level: "safe" | "moderate" | "high";
+  };
 }
 
-export function Header({ location, emsMode, onEmsToggle, onLocationChange }: HeaderProps) {
+export function Header({ location, onLocationChange, fruktanNow }: HeaderProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [tempLocation, setTempLocation] = useState(location.name);
 
@@ -101,22 +101,28 @@ export function Header({ location, emsMode, onEmsToggle, onLocationChange }: Hea
           {/* Controls */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
             {/* Info-Modal */}
-            <InfoModal emsMode={emsMode} />
+            <InfoModal emsMode={true} />
             
-            {/* EMS-Toggle */}
-            <div className="flex items-center gap-3 bg-muted/50 px-4 py-3 rounded-lg border">
-              <AlertCircle className="w-5 h-5 text-muted-foreground" />
-              <div className="flex items-center gap-3">
-                <Label htmlFor="ems-mode" className="text-sm font-medium cursor-pointer">
-                  Strenger Modus (EMS)
-                </Label>
-                <Switch
-                  id="ems-mode"
-                  checked={emsMode}
-                  onCheckedChange={onEmsToggle}
-                />
+            {/* Fruktan Now Display */}
+            {fruktanNow && (
+              <div className="flex items-center gap-3 bg-muted/50 px-4 py-3 rounded-lg border">
+                <AlertCircle className="w-5 h-5 text-muted-foreground" />
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">Fruktan (jetzt, EMS):</span>
+                  <span className={`text-sm font-bold ${
+                    fruktanNow.level === "safe" ? "text-risk-safe" :
+                    fruktanNow.level === "moderate" ? "text-risk-moderate" :
+                    "text-risk-high"
+                  }`}>
+                    {fruktanNow.score} ({
+                      fruktanNow.level === "safe" ? "Sicher" :
+                      fruktanNow.level === "moderate" ? "Erhöht" :
+                      "Hoch"
+                    })
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -124,11 +130,9 @@ export function Header({ location, emsMode, onEmsToggle, onLocationChange }: Hea
         <div className="mt-4 p-3 bg-muted/30 rounded-lg border-l-4 border-primary">
           <p className="text-sm text-muted-foreground leading-relaxed">
             Diese Matrix berechnet das Fruktan-Risiko basierend auf aktuellen Wetterdaten.
-            {emsMode && (
-              <span className="ml-1 font-medium text-foreground">
-                Strengere Schwellenwerte aktiv (0–29/30–59/60–100).
-              </span>
-            )}
+            <span className="ml-1 font-medium text-foreground">
+              EMS-Modus aktiv (0–29/30–59/60–100).
+            </span>
           </p>
         </div>
       </div>

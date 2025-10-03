@@ -192,6 +192,10 @@ export interface FruktanResponse {
   source: SourceMetadata;
   parity: ParityHashes;
   current?: CurrentConditions;
+  fruktanNow?: {
+    score: number;
+    level: "safe" | "moderate" | "high";
+  };
   today: DayMatrix;
   tomorrow: DayMatrix;
   dayAfterTomorrow: DayMatrix;

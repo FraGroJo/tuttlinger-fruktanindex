@@ -36,7 +36,7 @@ export function MetadataBar({ metadata, flags, onRefresh }: MetadataBarProps) {
         </div>
         <div className="flex items-center gap-2">
           <span className={metadata.dataAgeMinutes > 60 ? "text-warning" : ""}>
-            Alter: {metadata.dataAgeMinutes} Min
+            Alter: {Math.max(0, metadata.dataAgeMinutes)} Min
           </span>
         </div>
       </div>

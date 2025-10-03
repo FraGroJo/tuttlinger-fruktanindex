@@ -1,14 +1,10 @@
 /**
  * TrendChart Komponente
- * Zeigt historische und zukünftige Fruktan-Risiko-Trends als Liniendiagramm
- * Zeitraum: -72h bis +48h mit Frost-Markierungen und Ampelfarben
+ * Zeigt farbcodierten EMS-Trend mit Schwellenwerten und Frost-Markern
  */
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend, Area } from "recharts";
+import { ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceArea, ReferenceLine } from "recharts";
 import { type TrendDataPoint } from "@/types/fruktan";
-import { Card } from "./ui/card";
-import { Badge } from "./ui/badge";
-import { Snowflake, AlertTriangle } from "lucide-react";
 
 interface TrendChartProps {
   data: TrendDataPoint[];
@@ -16,199 +12,154 @@ interface TrendChartProps {
   className?: string;
 }
 
-export function TrendChart({ data, confidence = "normal", className = "" }: TrendChartProps) {
-  // Formatiere Datum für X-Achse
-  const formatDate = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return date.toLocaleDateString("de-DE", {
-      day: "2-digit",
-      month: "2-digit",
-      hour: "2-digit",
-    });
-  };
+const EMS = { GREEN_MAX: 29, YELLOW_MAX: 59, RED_MAX: 100 };
 
-  // Custom Tooltip mit Frost-Hinweis
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (!active || !payload || !payload.length) return null;
+function riskColor(score: number): string {
+  if (score <= EMS.GREEN_MAX) return "hsl(142, 76%, 36%)";
+  if (score <= EMS.YELLOW_MAX) return "hsl(38, 92%, 50%)";
+  return "hsl(0, 72%, 51%)";
+}
 
-    const data = payload[0].payload as TrendDataPoint;
-    const date = new Date(data.timestamp);
-    const formattedDate = date.toLocaleString("de-DE", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+const fmtTime = (ts: string, tz = "Europe/Berlin") =>
+  new Intl.DateTimeFormat("de-DE", {
+    timeZone: tz,
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(ts));
 
-    // Ampelfarbe basierend auf Level
-    let levelColor = "text-safe";
-    let levelText = "Gering";
-    if (data.level === "moderate") {
-      levelColor = "text-moderate";
-      levelText = "Mäßig";
-    } else if (data.level === "high") {
-      levelColor = "text-high";
-      levelText = "Hoch";
-    }
+const fmtAxisTime = (ts: string, tz = "Europe/Berlin") =>
+  new Intl.DateTimeFormat("de-DE", {
+    timeZone: tz,
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+  }).format(new Date(ts));
 
-    return (
-      <div className="bg-card border rounded-lg p-3 shadow-lg">
-        <p className="text-sm font-medium mb-2">{formattedDate}</p>
-        <div className="space-y-1">
-          <p className="text-sm">
-            <span className="text-muted-foreground">Score:</span>{" "}
-            <span className={`font-semibold ${levelColor}`}>{data.score}</span>
-          </p>
-          <p className="text-sm">
-            <span className="text-muted-foreground">Risiko:</span>{" "}
-            <span className={`font-medium ${levelColor}`}>{levelText}</span>
-          </p>
-          <p className="text-sm">
-            <span className="text-muted-foreground">Temperatur:</span>{" "}
-            <span>{data.temperature.toFixed(1)} °C</span>
-          </p>
-          {data.isFrost && (
-            <div className="flex items-center gap-1 text-sm text-high mt-1">
-              <Snowflake className="w-3 h-3" />
-              <span className="font-medium">Frostgefahr</span>
-            </div>
-          )}
-        </div>
+const fmtNumber = (n: number) =>
+  new Intl.NumberFormat("de-DE", { maximumFractionDigits: 0 }).format(n);
+
+const RiskDot: React.FC<any> = (props) => {
+  const { cx, cy, payload } = props;
+  const fill = riskColor(payload.score);
+  return (
+    <>
+      {payload.isFrost ? (
+        <g>
+          <text x={cx} y={cy - 10} textAnchor="middle" fontSize="12" fill="hsl(220, 10%, 45%)">✽</text>
+        </g>
+      ) : null}
+      <circle cx={cx} cy={cy} r={3.5} fill={fill} stroke="hsl(220, 25%, 20%)" strokeWidth={0.5} />
+    </>
+  );
+};
+
+const CustomTooltip: React.FC<any> = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null;
+  const p = payload[0]?.payload;
+  const col = riskColor(p.score);
+  const labelText = p?.timestamp ? fmtTime(p.timestamp) : label;
+  const level =
+    p.score <= EMS.GREEN_MAX ? "Sicher (Grün)" :
+    p.score <= EMS.YELLOW_MAX ? "Erhöht (Gelb)" : "Hoch (Rot)";
+  return (
+    <div className="rounded-xl border border-border bg-card/95 p-3 shadow-sm">
+      <div className="text-xs text-muted-foreground">{labelText}</div>
+      <div className="mt-1 flex items-center gap-2">
+        <span className="inline-block h-2 w-2 rounded-full" style={{ background: col }} />
+        <span className="font-medium text-card-foreground">Score: {fmtNumber(p.score)}</span>
       </div>
-    );
-  };
+      <div className="mt-1 text-xs text-muted-foreground">{level}{p.isFrost ? " • Frost" : ""}</div>
+    </div>
+  );
+};
 
-  // Finde "Jetzt"-Zeitpunkt
-  const now = new Date().toISOString();
-
-  // Konfidenzband-Daten (±5 bei low confidence)
-  const dataWithConfidence = confidence === "low" 
-    ? data.map(point => ({
-        ...point,
-        confidenceLower: Math.max(0, point.score - 5),
-        confidenceUpper: Math.min(100, point.score + 5),
-      }))
-    : data;
+export function TrendChart({ data, confidence = "normal", className = "" }: TrendChartProps) {
+  const yDomain: [number, number] = [0, 100];
+  const timeZone = "Europe/Berlin";
 
   return (
-    <Card className={`p-6 ${className}`}>
-      <div className="mb-4 flex items-start justify-between">
-        <div>
-          <h3 className="text-lg font-semibold text-foreground mb-1">Trend-Verlauf</h3>
-          <p className="text-sm text-muted-foreground">
-            Fruktan-Risiko von vor 72 Stunden bis +48 Stunden (stündlich)
-          </p>
+    <div className={`rounded-2xl border border-border bg-card p-4 shadow-sm ${className}`}>
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-base font-semibold text-card-foreground">Trend-Verlauf (EMS)</h3>
+        <div className="flex items-center gap-2">
+          <div className="text-xs text-muted-foreground">Fruktan-Risiko (EMS) • stündlich</div>
+          {confidence === "low" && (
+            <span className="text-xs px-2 py-1 rounded bg-warning/10 text-warning border border-warning/30">
+              Geringe Konfidenz
+            </span>
+          )}
         </div>
-        {confidence === "low" && (
-          <Badge variant="outline" className="text-warning border-warning gap-1">
-            <AlertTriangle className="h-3 w-3" />
-            Erhöhte Unsicherheit
-          </Badge>
-        )}
       </div>
 
-      <ResponsiveContainer width="100%" height={400}>
-        <LineChart data={dataWithConfidence} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-          <XAxis
-            dataKey="timestamp"
-            tickFormatter={formatDate}
-            className="text-xs text-muted-foreground"
-            minTickGap={30}
-          />
-          <YAxis
-            domain={[0, 100]}
-            className="text-xs text-muted-foreground"
-            label={{ value: "Score", angle: -90, position: "insideLeft" }}
-          />
-          <Tooltip content={<CustomTooltip />} />
-          <Legend
-            wrapperStyle={{ paddingTop: "20px" }}
-            formatter={(value) => {
-              if (value === "score") return "Fruktan-Score";
-              return value;
-            }}
-          />
-          
-          {/* Konfidenzband (nur bei low confidence) */}
-          {confidence === "low" && (
-            <Area
-              type="monotone"
-              dataKey="confidenceUpper"
-              stroke="none"
-              fill="hsl(var(--warning))"
-              fillOpacity={0.1}
+      <div role="img" aria-label="Trend des Fruktan-Scores über Zeit (EMS farbcodiert)">
+        <ResponsiveContainer width="100%" height={340}>
+          <ComposedChart data={data} margin={{ top: 10, right: 16, bottom: 8, left: 0 }}>
+            {/* Farbbänder für EMS-Schwellen */}
+            <ReferenceArea y1={0} y2={EMS.GREEN_MAX} fill="hsl(142, 76%, 36%)" fillOpacity={0.10} />
+            <ReferenceArea y1={EMS.GREEN_MAX} y2={EMS.YELLOW_MAX} fill="hsl(38, 92%, 50%)" fillOpacity={0.10} />
+            <ReferenceArea y1={EMS.YELLOW_MAX} y2={EMS.RED_MAX} fill="hsl(0, 72%, 51%)" fillOpacity={0.08} />
+
+            {/* Schwellenlinien */}
+            <ReferenceLine y={EMS.GREEN_MAX} stroke="hsl(142, 76%, 36%)" strokeDasharray="4 4" strokeWidth={1.5}>
+              <text x="95%" y={EMS.GREEN_MAX - 5} textAnchor="end" fontSize="11" fill="hsl(142, 76%, 36%)">
+                Grenze Grün
+              </text>
+            </ReferenceLine>
+            <ReferenceLine y={EMS.YELLOW_MAX} stroke="hsl(38, 92%, 50%)" strokeDasharray="4 4" strokeWidth={1.5}>
+              <text x="95%" y={EMS.YELLOW_MAX - 5} textAnchor="end" fontSize="11" fill="hsl(38, 92%, 50%)">
+                Grenze Gelb
+              </text>
+            </ReferenceLine>
+
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 88%)" opacity={0.3} />
+            <XAxis
+              dataKey="timestamp"
+              tickFormatter={(ts) => fmtAxisTime(ts, timeZone)}
+              tick={{ fontSize: 11, fill: "hsl(220, 10%, 45%)" }}
+              stroke="hsl(220, 13%, 88%)"
             />
-          )}
-          {confidence === "low" && (
-            <Area
-              type="monotone"
-              dataKey="confidenceLower"
-              stroke="none"
-              fill="hsl(var(--warning))"
-              fillOpacity={0.1}
+            <YAxis
+              domain={yDomain}
+              tick={{ fontSize: 11, fill: "hsl(220, 10%, 45%)" }}
+              stroke="hsl(220, 13%, 88%)"
+              label={{ value: "Score (EMS)", angle: -90, position: "insideLeft", style: { fontSize: 12, fill: "hsl(220, 10%, 45%)" } }}
             />
-          )}
-          
-          {/* Schwellenwerte als Referenzlinien */}
-          <ReferenceLine y={40} stroke="hsl(var(--safe))" strokeDasharray="5 5" label="Grenze Grün" />
-          <ReferenceLine y={70} stroke="hsl(var(--moderate))" strokeDasharray="5 5" label="Grenze Gelb" />
-          
-          {/* Jetzt-Linie */}
-          <ReferenceLine x={now} stroke="hsl(var(--primary))" strokeWidth={2} label="Jetzt" />
-          
-          {/* Hauptlinie mit Ampelfarbe basierend auf Score */}
-          <Line
-            type="monotone"
-            dataKey="score"
-            stroke="hsl(var(--primary))"
-            strokeWidth={2}
-            dot={(props: any) => {
-              const { cx, cy, payload } = props;
-              let fillColor = "hsl(var(--safe))";
-              if (payload.level === "moderate") fillColor = "hsl(var(--moderate))";
-              if (payload.level === "high") fillColor = "hsl(var(--high))";
-              
-              // Frost-Marker größer und mit Schneeflocke-Symbol
-              if (payload.isFrost) {
-                return (
-                  <g>
-                    <circle cx={cx} cy={cy} r={6} fill={fillColor} stroke="white" strokeWidth={2} />
-                    <circle cx={cx} cy={cy} r={2} fill="white" />
-                  </g>
-                );
-              }
-              
-              return <circle cx={cx} cy={cy} r={3} fill={fillColor} />;
-            }}
-            activeDot={{ r: 6 }}
-          />
-        </LineChart>
-      </ResponsiveContainer>
+            <Tooltip content={<CustomTooltip />} />
+
+            <Line
+              type="monotone"
+              dataKey="score"
+              stroke="hsl(220, 25%, 20%)"
+              strokeWidth={2}
+              dot={<RiskDot />}
+              activeDot={{ r: 5 }}
+              isAnimationActive={false}
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
 
       {/* Legende */}
-      <div className="mt-6 p-4 bg-muted/30 rounded-lg border">
-        <h4 className="text-sm font-semibold mb-3">Legende</h4>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full bg-safe" />
-            <span className="text-sm">Grün = Geringes Risiko (0–39)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full bg-moderate" />
-            <span className="text-sm">Gelb = Erhöhtes Risiko (40–69)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full bg-high" />
-            <span className="text-sm">Rot = Hohes Risiko (70–100)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Snowflake className="w-4 h-4 text-high" />
-            <span className="text-sm">Frost-Marker (≤ 0 °C)</span>
-          </div>
+      <div className="mt-4 flex flex-wrap gap-4 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <span className="inline-block h-2 w-2 rounded-full" style={{ background: riskColor(15) }} />
+          <span>0–29: Sicher (Grün)</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="inline-block h-2 w-2 rounded-full" style={{ background: riskColor(45) }} />
+          <span>30–59: Erhöht (Gelb)</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="inline-block h-2 w-2 rounded-full" style={{ background: riskColor(75) }} />
+          <span>60–100: Hoch (Rot)</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-base">✽</span>
+          <span>Frostnacht</span>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }

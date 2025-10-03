@@ -421,6 +421,17 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
     globalFlags.push("stale_data");
   }
   
+  // Calculate fruktan_now from current conditions and today's data
+  const localHour = parseInt(now.toLocaleString("en-US", { hour: "numeric", hour12: false, timeZone: "Europe/Berlin" }));
+  let currentSlot: "morning" | "noon" | "evening" = "morning";
+  if (localHour >= 11 && localHour < 16) currentSlot = "noon";
+  else if (localHour >= 16 && localHour <= 21) currentSlot = "evening";
+  
+  const fruktanNow = {
+    score: today[currentSlot].score,
+    level: today[currentSlot].level as "safe" | "moderate" | "high"
+  };
+  
   return {
     location: {
       name: location.name,
@@ -430,6 +441,7 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
     source: sourceMetadata,
     parity: parityHashes,
     current,
+    fruktanNow,
     today,
     tomorrow,
     dayAfterTomorrow,
@@ -439,7 +451,7 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
       dataSource: "Open-Meteo ECMWF",
       modelRunTime: sourceMetadata.model_run_time_utc,
       localTimestamp: now.toLocaleString("de-DE", { timeZone: "Europe/Berlin" }),
-      dataAgeMinutes: sourceMetadata.data_age_minutes,
+      dataAgeMinutes: Math.max(0, sourceMetadata.data_age_minutes),
       timezone: "Europe/Berlin",
     },
     flags: globalFlags,
