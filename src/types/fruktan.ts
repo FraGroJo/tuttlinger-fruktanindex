@@ -104,7 +104,6 @@ export interface SourceMetadata {
   model: string;                 // "ECMWF", "GFS", oder "auto"
   model_run_time_utc: string;    // ISO timestamp
   data_timestamp_local: string;  // ISO timestamp in Europe/Berlin
-  data_age_minutes: number;
 }
 
 /**
@@ -205,7 +204,6 @@ export interface FruktanResponse {
     dataSource: string; // z.B. "Open-Meteo ECMWF"
     modelRunTime: string; // UTC
     localTimestamp: string; // Europe/Berlin
-    dataAgeMinutes: number;
     timezone: string;
   };
   flags: string[]; // globale Flags (z.B. "stale_data")

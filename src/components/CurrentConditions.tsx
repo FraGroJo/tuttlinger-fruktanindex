@@ -62,14 +62,7 @@ export function CurrentConditions({ current, source, flags = [] }: CurrentCondit
         {/* Source Metadata */}
         <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
           <Database className="h-3 w-3" />
-          <span>Stand: {formatDateTime(source.data_timestamp_local)} (Europe/Berlin)</span>
-        </div>
-        <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
-          <span>Quelle: {source.provider}</span>
-          <span>•</span>
-          <span>Modell: {source.model}</span>
-          <span>•</span>
-          <span>Alter: {source.data_age_minutes} Min</span>
+          <span>Quelle: {source.provider} • Stand: {formatDateTime(source.data_timestamp_local)} ({source.model})</span>
         </div>
 
         {/* Weitere Werte als Grid */}

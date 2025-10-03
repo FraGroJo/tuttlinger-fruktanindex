@@ -1,6 +1,11 @@
 # Fruktan-Matrix Datenqualität & Validierung
 
-## ✅ Geprüfte Komponenten (04.10.2025)
+## ✅ Geprüfte Komponenten (04.10.2025 - Update 01:45)
+
+### WICHTIGE ÄNDERUNGEN
+- ✅ **"Alter"-Anzeige entfernt**: Kein "Alter: ... Min" mehr im Header oder MetadataBar
+- ✅ **Frische Daten bei jedem Seitenaufruf**: Cache auf 60s Debounce reduziert (nur für Rate-Limiting)
+- ✅ **Atomare Datengrundlage**: Alle UI-Komponenten nutzen denselben API-Fetch (einheitlicher Snapshot)
 
 ### 1. API-Datenquelle (Open-Meteo)
 **Status: KORREKT**
@@ -112,12 +117,13 @@
 - **Anzeige im Header**: Score + Level (Sicher/Erhöht/Hoch) ✅
 - **Logik**: Basiert auf "Heute"-Daten des entsprechenden Slots ✅
 
-### 9. Datenalter
-**Status: KORREKT**
+### 9. Daten-Frische & Cache
+**Status: OPTIMIERT**
 
-- **Berechnung**: `Math.max(0, (now - data_timestamp_local) / 60000)` ✅
-- **Garantie**: Alter ist NIE negativ ✅
-- **Warnung**: Banner bei >90 Min ✅
+- **Cache-TTL**: Reduziert auf 60s (nur Debounce für Rate-Limiting) ✅
+- **Fresh-on-Mount**: Bei jedem Seitenaufruf werden Daten neu geladen (außer innerhalb 60s Debounce) ✅
+- **Atomizität**: Ein API-Call pro Mount → einheitliche Datengrundlage für alle UI-Komponenten ✅
+- **Kein "Alter"**: Altersanzeige komplett entfernt aus Header und MetadataBar ✅
 
 ### 10. Trend-Chart
 **Status: KORREKT**
@@ -227,9 +233,11 @@ UI-Anzeige (DayCards, TrendChart, CurrentConditions)
 - ✅ Keine Daily-Werte für Fenster-Temps
 - ✅ Validierung aktiv
 - ✅ Fruktan-Now korrekt
-- ✅ Alter nie negativ
+- ✅ **"Alter" entfernt** (kein dataAgeMinutes mehr)
+- ✅ **Frische Daten bei jedem Load** (60s Debounce)
+- ✅ **Atomare Datengrundlage** (ein API-Call → konsistente UI)
 - ✅ Trend-Chart EMS-konform
 
-**Letzte Prüfung**: 04.10.2025, 01:24 Uhr (Europe/Berlin)
+**Letzte Prüfung**: 04.10.2025, 01:45 Uhr (Europe/Berlin)
 **Geprüft von**: Lovable AI
 **Status**: PRODUKTIONSBEREIT ✅

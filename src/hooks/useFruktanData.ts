@@ -93,8 +93,8 @@ function computeTemperatureSpectrum(temps: number[]): TemperatureSpectrum {
   return { min, max, median, p10, p90 };
 }
 
-// Cache-Storage (10 Min TTL)
-const CACHE_TTL = 10 * 60 * 1000; // 10 Minuten
+// Leichter Cache (nur 60s Debounce für Rate-Limiting)
+const CACHE_TTL = 60 * 1000; // 60 Sekunden
 let cache: Map<string, CacheEntry> = new Map();
 
 /**
@@ -158,7 +158,6 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
     model: "ECMWF", // Open-Meteo verwendet standardmäßig ECMWF
     model_run_time_utc: now.toISOString(),
     data_timestamp_local: dataTimestampLocal,
-    data_age_minutes: dataAge,
   };
 
   // Sammle alle hourly Daten für Parity-Hash
@@ -416,11 +415,6 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
     calc_hash: calcHash,
   };
   
-  // Metadaten
-  if (sourceMetadata.data_age_minutes > 90) {
-    globalFlags.push("stale_data");
-  }
-  
   // Calculate fruktan_now from current conditions and today's data
   const localHour = parseInt(now.toLocaleString("en-US", { hour: "numeric", hour12: false, timeZone: "Europe/Berlin" }));
   let currentSlot: "morning" | "noon" | "evening" = "morning";
@@ -451,7 +445,6 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
       dataSource: "Open-Meteo ECMWF",
       modelRunTime: sourceMetadata.model_run_time_utc,
       localTimestamp: now.toLocaleString("de-DE", { timeZone: "Europe/Berlin" }),
-      dataAgeMinutes: Math.max(0, sourceMetadata.data_age_minutes),
       timezone: "Europe/Berlin",
     },
     flags: globalFlags,
@@ -530,12 +523,15 @@ export function useFruktanData(emsMode: boolean, location: LocationData = DEFAUL
     // Cache-Key basierend auf Location und EMS-Modus
     const cacheKey = `${location.lat},${location.lon},${emsMode}`;
     
-    // Prüfe Cache
+    // Prüfe Cache (nur 60s Debounce für Rate-Limiting)
     const cached = cache.get(cacheKey);
     const now = Date.now();
     
-    if (cached && (now - cached.timestamp) < CACHE_TTL) {
-      // Cache-Hit: Daten sofort verfügbar
+    // Bei jedem Mount frische Daten laden, außer innerhalb 60s Debounce-Window
+    const shouldFetch = !cached || (now - cached.timestamp) >= CACHE_TTL;
+    
+    if (!shouldFetch) {
+      // Debounce-Hit: Verwende gecachte Daten
       setData(cached.data);
       setTrendData(cached.trendData);
       setLoading(false);

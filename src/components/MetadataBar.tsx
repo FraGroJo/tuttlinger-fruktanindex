@@ -11,7 +11,6 @@ interface MetadataBarProps {
     dataSource: string;
     modelRunTime: string;
     localTimestamp: string;
-    dataAgeMinutes: number;
     timezone: string;
   };
   flags: string[];
@@ -19,7 +18,6 @@ interface MetadataBarProps {
 }
 
 export function MetadataBar({ metadata, flags, onRefresh }: MetadataBarProps) {
-  const isStale = flags.includes("stale_data");
   const hasWarnings = flags.length > 0;
 
   return (
@@ -32,25 +30,22 @@ export function MetadataBar({ metadata, flags, onRefresh }: MetadataBarProps) {
         </div>
         <div className="flex items-center gap-2">
           <Clock className="w-4 h-4" />
-          <span>Stand: {metadata.localTimestamp}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className={metadata.dataAgeMinutes > 60 ? "text-warning" : ""}>
-            Alter: {Math.max(0, metadata.dataAgeMinutes)} Min
-          </span>
+          <span>Stand: {metadata.localTimestamp} ({metadata.timezone})</span>
         </div>
       </div>
 
-      {/* Stale-Banner */}
-      {isStale && (
+      {/* Warnungen (falls vorhanden) */}
+      {hasWarnings && (
         <div className="flex items-center justify-between gap-4 p-3 bg-warning/10 border border-warning/30 rounded-lg">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-5 h-5 text-warning flex-shrink-0" />
             <div>
-              <p className="text-sm font-medium text-warning">Daten möglicherweise veraltet</p>
-              <p className="text-xs text-muted-foreground">
-                Die Wetterdaten sind älter als 90 Minuten. Eine Aktualisierung wird empfohlen.
-              </p>
+              <p className="text-sm font-medium text-warning">Datenqualitäts-Hinweise</p>
+              <ul className="list-disc list-inside space-y-0.5 text-xs text-muted-foreground mt-1">
+                {flags.map((flag, idx) => (
+                  <li key={idx}>{flag.replace(/_/g, " ")}</li>
+                ))}
+              </ul>
             </div>
           </div>
           {onRefresh && (
@@ -63,23 +58,6 @@ export function MetadataBar({ metadata, flags, onRefresh }: MetadataBarProps) {
               Neu laden
             </Button>
           )}
-        </div>
-      )}
-
-      {/* Weitere Warnungen */}
-      {hasWarnings && !isStale && (
-        <div className="p-3 bg-muted/50 border border-muted rounded-lg">
-          <div className="flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-            <div className="text-xs text-muted-foreground">
-              <p className="font-medium mb-1">Validierungs-Hinweise:</p>
-              <ul className="list-disc list-inside space-y-0.5">
-                {flags.map((flag, idx) => (
-                  <li key={idx}>{flag.replace(/_/g, " ")}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
         </div>
       )}
     </div>
