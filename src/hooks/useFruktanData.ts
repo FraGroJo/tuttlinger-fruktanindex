@@ -1,9 +1,7 @@
 /**
  * Custom Hook: useFruktanData
  * Lädt und berechnet die Fruktan-Matrix-Daten mit Client-Side Caching (10 Min TTL)
- * 
- * WICHTIG: Dies ist eine Mock-Implementierung für die UI-Demonstration.
- * In der finalen Version wird hier Lovable Cloud mit Edge Functions genutzt.
+ * Nutzt Open-Meteo API für echte Wetterdaten
  */
 
 import { useState, useEffect } from "react";
@@ -51,114 +49,205 @@ const CACHE_TTL = 10 * 60 * 1000; // 10 Minuten
 let cache: Map<string, CacheEntry> = new Map();
 
 /**
- * Generiert Mock-Wetterdaten für Demo-Zwecke
+ * Lädt echte Wetterdaten von Open-Meteo API
  */
-function generateMockData(emsMode: boolean, location: LocationData): FruktanResponse {
+async function fetchWeatherData(location: LocationData, emsMode: boolean): Promise<FruktanResponse> {
+  const { lat, lon } = location;
   const now = new Date();
   
-  // Simuliere verschiedene Wetter-Szenarien für die drei Tage
-  const scenarios = [
-    {
-      // Heute: Kalte Nacht + sonniger Morgen (hohes Risiko)
-      tempMin: 2,
-      tempMax: 18,
-      radiationMorning: 650,
-      cloudCover: 20,
-      precip_7d: 3,
-      wind_3d: 7,
-      rh_morning: 52,
-      et0_7d: 5.8,
-    },
-    {
-      // Morgen: Moderate Bedingungen
-      tempMin: 8,
-      tempMax: 22,
-      radiationMorning: 450,
-      cloudCover: 45,
-      precip_7d: 8,
-      wind_3d: 4,
-      rh_morning: 65,
-      et0_7d: 4.2,
-    },
-    {
-      // Übermorgen: Bewölkt und feucht (geringes Risiko)
-      tempMin: 12,
-      tempMax: 19,
-      radiationMorning: 250,
-      cloudCover: 85,
-      precip_7d: 18,
-      wind_3d: 3,
-      rh_morning: 78,
-      et0_7d: 2.8,
-    },
-  ];
+  // Open-Meteo API URL mit allen benötigten Parametern
+  const params = new URLSearchParams({
+    latitude: lat.toString(),
+    longitude: lon.toString(),
+    timezone: "Europe/Berlin",
+    hourly: "temperature_2m,relative_humidity_2m,shortwave_radiation,cloud_cover,wind_speed_10m,precipitation,et0_fao_evapotranspiration",
+    current: "temperature_2m,relative_humidity_2m,cloud_cover,wind_speed_10m,precipitation",
+    daily: "temperature_2m_max,temperature_2m_min",
+    past_days: "3",
+    forecast_days: "3",
+  });
 
-  const generateDayMatrix = (dayOffset: number, scenario: typeof scenarios[0]): DayMatrix => {
-    const date = new Date(now);
-    date.setDate(date.getDate() + dayOffset);
+  const url = `https://api.open-meteo.com/v1/forecast?${params}`;
+  const response = await fetch(url);
+  
+  if (!response.ok) {
+    throw new Error(`Open-Meteo API error: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  
+  // Parse hourly data
+  const hourlyData = data.hourly;
+  const hourlyTimes = hourlyData.time.map((t: string) => new Date(t));
+  
+  // Validierung & Flag-Sammlung
+  const globalFlags: string[] = [];
+  
+  // Finde Tagesgrenzen (00:00 lokale Zeit)
+  const getTodayStart = () => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  };
+  
+  const todayStart = getTodayStart();
+  const tomorrowStart = new Date(todayStart);
+  tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+  const dayAfterStart = new Date(todayStart);
+  dayAfterStart.setDate(dayAfterStart.getDate() + 2);
+  
+  // Generiere Day-Matrix für einen Tag
+  const generateDayMatrix = (dayStart: Date): DayMatrix => {
+    const dayEnd = new Date(dayStart);
+    dayEnd.setDate(dayEnd.getDate() + 1);
     
-    const slots: Array<{ slot: "morning" | "noon" | "evening"; cloudMod: number }> = [
-      { slot: "morning", cloudMod: 0 },
-      { slot: "noon", cloudMod: -5 },
-      { slot: "evening", cloudMod: 10 },
+    // Filtere Stunden für diesen Tag
+    const dayHours = hourlyTimes
+      .map((time, idx) => ({ time, idx }))
+      .filter(({ time }) => time >= dayStart && time < dayEnd);
+    
+    // Berechne Tagesmin/max
+    const dayTemps = dayHours.map(({ idx }) => hourlyData.temperature_2m[idx]);
+    const tempMin = Math.min(...dayTemps);
+    const tempMax = Math.max(...dayTemps);
+    
+    // Letzte Nacht (00:00-05:00)
+    const nightHours = dayHours.filter(({ time }) => time.getHours() < 5);
+    const nightTemps = nightHours.map(({ idx }) => hourlyData.temperature_2m[idx]);
+    const nightMin = nightTemps.length > 0 ? Math.min(...nightTemps) : tempMin;
+    
+    // Berechne 7-Tage-Aggregate (für precip und ET0)
+    const sevenDaysAgo = new Date(dayStart);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const last7DaysHours = hourlyTimes
+      .map((time, idx) => ({ time, idx }))
+      .filter(({ time }) => time >= sevenDaysAgo && time < dayStart);
+    
+    const precip_7d = last7DaysHours.reduce((sum, { idx }) => 
+      sum + (hourlyData.precipitation[idx] || 0), 0);
+    const et0_7d = last7DaysHours.reduce((sum, { idx }) => 
+      sum + (hourlyData.et0_fao_evapotranspiration[idx] || 0), 0);
+    const et0_7d_avg = last7DaysHours.length > 0 ? et0_7d / last7DaysHours.length : 0;
+    
+    // 3-Tage Wind-Durchschnitt
+    const threeDaysAgo = new Date(dayStart);
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    const last3DaysHours = hourlyTimes
+      .map((time, idx) => ({ time, idx }))
+      .filter(({ time }) => time >= threeDaysAgo && time < dayStart);
+    const wind_3d_avg = last3DaysHours.length > 0
+      ? last3DaysHours.reduce((sum, { idx }) => sum + (hourlyData.wind_speed_10m[idx] || 0), 0) / last3DaysHours.length
+      : 3;
+    
+    // Slot-spezifische Berechnung
+    const slots: Array<{ slot: "morning" | "noon" | "evening"; start: number; end: number }> = [
+      { slot: "morning", start: 5, end: 11 },
+      { slot: "noon", start: 11, end: 16 },
+      { slot: "evening", start: 16, end: 21 },
     ];
-
-    const result: any = { date: date.toISOString().split("T")[0] };
-
-    slots.forEach(({ slot, cloudMod }) => {
+    
+    const result: any = { date: dayStart.toISOString().split("T")[0] };
+    
+    slots.forEach(({ slot, start, end }) => {
+      const slotHours = dayHours.filter(({ time }) => {
+        const h = time.getHours();
+        return h >= start && h < end;
+      });
+      
+      if (slotHours.length === 0) {
+        // Fallback für fehlende Daten
+        result[slot] = {
+          slot,
+          score: 20,
+          level: "green",
+          reason: "Keine Daten verfügbar für dieses Zeitfenster",
+          flags: ["missing_data"],
+          confidence: "low",
+        };
+        return;
+      }
+      
+      // Aggregiere Werte für dieses Slot
+      const slotRadiation = slotHours.reduce((sum, { idx }) => 
+        sum + (hourlyData.shortwave_radiation[idx] || 0), 0) / slotHours.length;
+      const slotCloud = slotHours.reduce((sum, { idx }) => 
+        sum + (hourlyData.cloud_cover[idx] || 0), 0) / slotHours.length;
+      const slotRh = slotHours.reduce((sum, { idx }) => 
+        sum + (hourlyData.relative_humidity_2m[idx] || 0), 0) / slotHours.length;
+      
+      // Morning rH (06:00-10:00)
+      const morningRhHours = dayHours.filter(({ time }) => {
+        const h = time.getHours();
+        return h >= 6 && h <= 10;
+      });
+      const rh_morning = morningRhHours.length > 0
+        ? morningRhHours.reduce((sum, { idx }) => sum + (hourlyData.relative_humidity_2m[idx] || 0), 0) / morningRhHours.length
+        : slotRh;
+      
       const input: ScoringInput = {
-        tempMin: scenario.tempMin,
-        tempMax: scenario.tempMax,
-        radiationMorning: scenario.radiationMorning,
-        cloudCoverSlot: Math.max(0, Math.min(100, scenario.cloudCover + cloudMod)),
-        precip_7d_sum: scenario.precip_7d,
-        wind_3d_avg: scenario.wind_3d,
-        relativeHumidityMorning: scenario.rh_morning,
-        et0_7d_avg: scenario.et0_7d,
+        tempMin: nightMin,
+        tempMax,
+        radiationMorning: slotRadiation,
+        cloudCoverSlot: slotCloud,
+        precip_7d_sum: precip_7d,
+        wind_3d_avg,
+        relativeHumidityMorning: rh_morning,
+        et0_7d_avg,
         slot,
       };
-
+      
       const score = calculateScore(input);
       const level = getRiskLevel(score, emsMode);
       const reason = generateReason(input, score);
-
+      
       // Validierung
       const validationFlags: string[] = [];
-      validationFlags.push(...validateBounds(scenario.tempMin, scenario.rh_morning, scenario.cloudCover + cloudMod, scenario.precip_7d, scenario.wind_3d));
-      validationFlags.push(...checkRadiationCloudConsistency(scenario.radiationMorning, scenario.cloudCover + cloudMod));
+      slotHours.forEach(({ idx }) => {
+        const temp = hourlyData.temperature_2m[idx];
+        const rh = hourlyData.relative_humidity_2m[idx];
+        const cloud = hourlyData.cloud_cover[idx];
+        const precip = hourlyData.precipitation[idx];
+        const wind = hourlyData.wind_speed_10m[idx];
+        
+        validationFlags.push(...validateBounds(temp, rh, cloud, precip, wind));
+      });
+      
+      // Check Strahlung vs. Wolken
+      validationFlags.push(...checkRadiationCloudConsistency(slotRadiation, slotCloud));
       
       const confidence = validationFlags.length > 0 ? "low" : "normal";
-
+      
       result[slot] = { slot, score, level, reason, flags: validationFlags, confidence };
     });
-
+    
     return result as DayMatrix;
   };
-
-  // Metadaten
-  const modelRunTime = new Date(now.getTime() - 30 * 60 * 1000); // Modell-Lauf vor 30 Min (simuliert)
-  const dataAgeMinutes = 25; // Simuliert ~25 Min alte Daten
-  const globalFlags: string[] = [];
   
-  // Stale-Check (>90 Min)
+  // Generiere Matrizen für 3 Tage
+  const today = generateDayMatrix(todayStart);
+  const tomorrow = generateDayMatrix(tomorrowStart);
+  const dayAfterTomorrow = generateDayMatrix(dayAfterStart);
+  
+  // Metadaten
+  const dataAgeMinutes = 5; // API-Daten sind aktuell
   if (dataAgeMinutes > 90) {
     globalFlags.push("stale_data");
   }
-
+  
   return {
     location: {
       name: location.name,
       lat: location.lat,
       lon: location.lon,
     },
-    today: generateDayMatrix(0, scenarios[0]),
-    tomorrow: generateDayMatrix(1, scenarios[1]),
-    dayAfterTomorrow: generateDayMatrix(2, scenarios[2]),
+    today,
+    tomorrow,
+    dayAfterTomorrow,
     generatedAt: now.toISOString(),
     emsMode,
     metadata: {
-      dataSource: "Open-Meteo ECMWF (Mock)",
-      modelRunTime: modelRunTime.toISOString(),
+      dataSource: "Open-Meteo ECMWF",
+      modelRunTime: now.toISOString(),
       localTimestamp: now.toLocaleString("de-DE", { timeZone: "Europe/Berlin" }),
       dataAgeMinutes,
       timezone: "Europe/Berlin",
@@ -169,69 +258,54 @@ function generateMockData(emsMode: boolean, location: LocationData): FruktanResp
 }
 
 /**
- * Generiert Mock-Trend-Daten (-72h bis +48h, stündlich)
+ * Lädt echte Trend-Daten von Open-Meteo (-72h bis +48h)
  */
-function generateMockTrendData(emsMode: boolean): TrendDataPoint[] {
-  const data: TrendDataPoint[] = [];
-  const now = new Date();
+async function fetchTrendData(location: LocationData, emsMode: boolean): Promise<TrendDataPoint[]> {
+  const { lat, lon } = location;
   
-  let prevTemp = 12;
-  let prevRh = 60;
-  let prevWind = 5;
+  const params = new URLSearchParams({
+    latitude: lat.toString(),
+    longitude: lon.toString(),
+    timezone: "Europe/Berlin",
+    hourly: "temperature_2m,shortwave_radiation,cloud_cover,precipitation",
+    past_days: "3",
+    forecast_days: "2",
+  });
+
+  const url = `https://api.open-meteo.com/v1/forecast?${params}`;
+  const response = await fetch(url);
   
-  // -72h bis +48h = 120 Stunden
-  for (let i = -72; i <= 48; i++) {
-    const timestamp = new Date(now.getTime() + i * 60 * 60 * 1000);
-    
-    // Simuliere Temperaturverlauf (Tag/Nacht-Zyklus)
-    const hour = timestamp.getHours();
-    const dayProgress = Math.sin((hour - 6) * Math.PI / 12); // Peak um 14 Uhr
-    const baseTemp = 12 + dayProgress * 8;
-    
-    // Füge Variation über Tage hinzu
-    const dayOffset = Math.floor(i / 24);
-    const tempVariation = Math.sin(dayOffset * Math.PI / 3) * 3;
-    const temperature = baseTemp + tempVariation;
-    
-    // Simuliere Strahlung (nur tagsüber)
-    const radiation = hour >= 6 && hour <= 20 
-      ? Math.max(0, 400 + dayProgress * 400 + Math.random() * 100)
-      : 0;
-    
-    // Simuliere rH und Wind
-    const rh = 50 + Math.sin(hour * Math.PI / 12) * 20 + Math.random() * 10;
-    const wind = 3 + Math.random() * 4;
-    const cloudCover = 30 + Math.random() * 40;
-    
-    // Frost-Flag
+  if (!response.ok) {
+    throw new Error(`Open-Meteo API error: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  const hourlyData = data.hourly;
+  
+  const trendData: TrendDataPoint[] = [];
+  
+  for (let i = 0; i < hourlyData.time.length; i++) {
+    const timestamp = new Date(hourlyData.time[i]);
+    const temperature = hourlyData.temperature_2m[i];
+    const radiation = hourlyData.shortwave_radiation[i] || 0;
+    const cloudCover = hourlyData.cloud_cover[i] || 0;
     const isFrost = temperature <= 0;
     
-    // Berechne vereinfachten Score basierend auf Temperatur und Strahlung
+    // Vereinfachter Score für Trend
     let score = 20; // Base
-    if (temperature <= 0) score += 30; // Frost
-    if (temperature <= 5) score += 15; // Kalt
+    if (temperature <= 0) score += 30;
+    if (temperature <= 5) score += 15;
+    
+    const hour = timestamp.getHours();
     if (hour >= 5 && hour <= 11 && temperature <= 5 && radiation > 300) {
-      score += 25; // Kalter sonniger Morgen
+      score += 25;
     }
-    score += Math.min(20, radiation / 40); // Strahlungseffekt
+    score += Math.min(20, radiation / 40);
     
-    // Validierung (nur für einzelne Stichproben zur Demo)
-    const validationFlags: string[] = [];
-    if (i > -72) {
-      validationFlags.push(...checkSteps(prevTemp, temperature, prevRh, rh, prevWind, wind));
-    }
-    validationFlags.push(...checkRadiationCloudConsistency(radiation, cloudCover));
-    
-    prevTemp = temperature;
-    prevRh = rh;
-    prevWind = wind;
-    
-    // Clamp
     score = Math.max(0, Math.min(100, Math.round(score)));
-    
     const level = getRiskLevel(score, emsMode);
     
-    data.push({
+    trendData.push({
       timestamp: timestamp.toISOString(),
       temperature,
       radiation,
@@ -241,7 +315,7 @@ function generateMockTrendData(emsMode: boolean): TrendDataPoint[] {
     });
   }
   
-  return data;
+  return trendData;
 }
 
 export function useFruktanData(emsMode: boolean, location: LocationData = DEFAULT_LOCATION) {
@@ -270,28 +344,28 @@ export function useFruktanData(emsMode: boolean, location: LocationData = DEFAUL
     setLoading(true);
     setError(null);
 
-    const timer = setTimeout(() => {
-      try {
-        const mockData = generateMockData(emsMode, location);
-        const mockTrend = generateMockTrendData(emsMode);
-        
+    // Lade echte Daten von Open-Meteo
+    Promise.all([
+      fetchWeatherData(location, emsMode),
+      fetchTrendData(location, emsMode)
+    ])
+      .then(([weatherData, trend]) => {
         // Speichere im Cache
         cache.set(cacheKey, {
-          data: mockData,
-          trendData: mockTrend,
+          data: weatherData,
+          trendData: trend,
           timestamp: Date.now(),
         });
         
-        setData(mockData);
-        setTrendData(mockTrend);
-      } catch (err) {
-        setError("Fehler beim Laden der Daten");
-      } finally {
+        setData(weatherData);
+        setTrendData(trend);
         setLoading(false);
-      }
-    }, 800);
-
-    return () => clearTimeout(timer);
+      })
+      .catch((err) => {
+        console.error("Fehler beim Laden der Wetterdaten:", err);
+        setError("Fehler beim Laden der Wetterdaten von Open-Meteo");
+        setLoading(false);
+      });
   }, [emsMode, location.lat, location.lon, location.name]);
 
   return { data, trendData, loading, error };
