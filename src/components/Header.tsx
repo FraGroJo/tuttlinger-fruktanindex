@@ -41,7 +41,7 @@ export function Header({ location, onLocationChange, fruktanNow }: HeaderProps) 
           {/* Titel & Ort */}
           <div className="flex-1">
             <h1 className="text-3xl font-bold text-foreground mb-2">
-              Fruktan-Matrix für Pferdeweiden
+              Fruktan Matrix Reitverein Tuttlingen
             </h1>
             
             {/* Standort-Eingabe */}
