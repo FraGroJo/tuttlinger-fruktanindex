@@ -118,7 +118,7 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
   });
 
   const url = `https://api.open-meteo.com/v1/forecast?${params}`;
-  const response = await fetch(url);
+  const response = await fetch(url, { cache: 'no-store' });
   
   if (!response.ok) {
     throw new Error(`Open-Meteo API error: ${response.statusText}`);
@@ -506,7 +506,7 @@ async function fetchTrendData(location: LocationData, emsMode: boolean): Promise
   });
 
   const url = `https://api.open-meteo.com/v1/forecast?${params}`;
-  const response = await fetch(url);
+  const response = await fetch(url, { cache: 'no-store' });
   
   if (!response.ok) {
     throw new Error(`Open-Meteo API error: ${response.statusText}`);

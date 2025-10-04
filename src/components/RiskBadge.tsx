@@ -24,7 +24,7 @@ export function RiskBadge({ level, score, className = "" }: RiskBadgeProps) {
       bg: "bg-risk-moderate-bg",
       text: "text-risk-moderate",
       icon: AlertTriangle,
-      label: "Moderat",
+      label: "Erhöht",
     },
     high: {
       bg: "bg-risk-high-bg",

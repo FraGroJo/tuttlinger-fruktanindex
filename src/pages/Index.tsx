@@ -207,6 +207,7 @@ const Index = () => {
       <Header
         location={location}
         onLocationChange={setLocation}
+        metadata={data?.metadata}
         fruktanNow={data?.fruktanNow}
       />
 

@@ -232,7 +232,7 @@ export function generateReason(input: ScoringInput, score: number): string {
   if (score < 40) {
     return "Günstige Bedingungen, geringes Fruktan-Risiko.";
   } else if (score < 70) {
-    return "Moderate Risiko-Faktoren, Vorsicht empfohlen.";
+    return "Erhöhte Risiko-Faktoren, Vorsicht empfohlen.";
   } else {
     return "Mehrere ungünstige Faktoren kombiniert → hohes Risiko.";
   }

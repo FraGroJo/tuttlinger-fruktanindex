@@ -34,7 +34,7 @@ export function DayCard({ matrix, className = "" }: DayCardProps) {
     month: "2-digit",
   });
 
-  // Heute/Morgen/Übermorgen Label
+  // Heute/Morgen/Übermorgen/Tag 3 Label
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const diffDays = Math.round((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
@@ -43,6 +43,7 @@ export function DayCard({ matrix, className = "" }: DayCardProps) {
   if (diffDays === 0) dayLabel = "Heute";
   else if (diffDays === 1) dayLabel = "Morgen";
   else if (diffDays === 2) dayLabel = "Übermorgen";
+  else if (diffDays === 3) dayLabel = "Tag 3";
 
   return (
     <Card className={`overflow-hidden backdrop-blur-sm bg-card/80 border-2 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl sm:rounded-2xl ${className}`}>

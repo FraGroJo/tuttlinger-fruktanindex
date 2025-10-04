@@ -329,7 +329,7 @@ function getLevelText(level: string): string {
     case "safe":
       return "Gering";
     case "moderate":
-      return "Mäßig";
+      return "Erhöht";
     case "high":
       return "Hoch";
     default:
