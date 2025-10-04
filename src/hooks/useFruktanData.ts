@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { calculatePastureAdjustments, type PastureData } from "@/types/pasture";
 import { type FruktanResponse, type DayMatrix, type TrendDataPoint, type LocationData, DEFAULT_LOCATION, type TemperatureSpectrum, type CurrentConditions, type RawWindowData, type SourceMetadata, type ParityHashes } from "@/types/fruktan";
 import { calculateScore, getRiskLevel, generateReason, type ScoringInput } from "@/lib/scoring";
 
@@ -356,9 +357,32 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
         slot,
       };
       
-      const score = calculateScore(input);
+      // Weidestand-Anpassungen laden (falls vorhanden)
+      const pastureDataStr = localStorage.getItem("pastureData");
+      let pastureMultiplier = 1.0;
+      let pastureOffset = 0;
+      let pastureReasons: string[] = [];
+      
+      if (pastureDataStr) {
+        try {
+          const pastureData: PastureData = JSON.parse(pastureDataStr);
+          const adjustments = calculatePastureAdjustments(pastureData);
+          pastureMultiplier = adjustments.multiplier;
+          pastureOffset = adjustments.offset;
+          pastureReasons = adjustments.reason;
+        } catch (e) {
+          console.warn("Failed to parse pasture data", e);
+        }
+      }
+      
+      const score = calculateScore(input, pastureMultiplier, pastureOffset);
       const level = getRiskLevel(score, emsMode);
-      const reason = generateReason(input, score);
+      let reason = generateReason(input, score);
+      
+      // Weidestand-Gründe anhängen
+      if (pastureReasons.length > 0) {
+        reason += "\n\nWeidestand-Anpassungen: " + pastureReasons.join(", ");
+      }
       
       // Validierung
       const validationFlags: string[] = [...slotValidationFlags];

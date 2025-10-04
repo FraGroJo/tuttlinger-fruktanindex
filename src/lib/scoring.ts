@@ -125,91 +125,72 @@ export interface ScoringInput {
 /**
  * Haupt-Scoring-Funktion für ein Zeitfenster
  */
-export function calculateScore(input: ScoringInput): number {
-  const {
-    tempMin,
-    tempMax,
-    radiationMorning,
-    cloudCoverSlot,
-    precip_7d_sum,
-    wind_3d_avg,
-    relativeHumidityMorning,
-    et0_7d_avg,
-    slot,
-  } = input;
+export function calculateScore(
+  input: ScoringInput,
+  pastureMultiplier: number = 1.0,
+  pastureOffset: number = 0
+): number {
+  const slot = input.slot;
+  let score = 20;
 
-  // Basis-Faktoren
-  const base = SCORING_CONSTANTS.BASE;
-  const frostBonus = tempMin <= 0 ? SCORING_CONSTANTS.FROST_BONUS : 0;
-  const coldBonus = tempMin <= 5 ? SCORING_CONSTANTS.COLD_BONUS : 0;
+  const isMorning = slot === "morning";
+  const isNoon = slot === "noon";
 
-  // Trockenstress
-  const drynessScore = calculateDrynessScore(et0_7d_avg, precip_7d_sum, wind_3d_avg);
-
-  // Bewölkungs-Entlastung
-  const cloudRelief = calculateCloudRelief(cloudCoverSlot);
-
-  // Diurnale Spanne
-  const diurnalRange = tempMax - tempMin;
-  const diurnalBoost = calculateDiurnalBoost(diurnalRange);
-
-  // Hitze-Entlastung
-  const heatRelief = calculateHeatRelief(tempMax, precip_7d_sum, et0_7d_avg);
-
-  // Zeitfenster-spezifische Berechnung
-  let score = 0;
-
-  if (slot === "morning") {
-    // Morgen: Maximale Sensibilität
-    const morningSunFactor = clamp(
-      mapRange(radiationMorning, 0, 800, 0, SCORING_CONSTANTS.MAX_MORNING_SUN),
-      0,
-      SCORING_CONSTANTS.MAX_MORNING_SUN
-    );
-    
-    const lowHumidityBoost =
-      relativeHumidityMorning < SCORING_CONSTANTS.LOW_HUMIDITY_THRESHOLD
-        ? SCORING_CONSTANTS.LOW_HUMIDITY_BOOST
-        : 0;
-    
-    let morningColdStack = 0;
-    if (coldBonus > 0) morningColdStack += SCORING_CONSTANTS.MORNING_COLD_STACK;
-    if (frostBonus > 0) morningColdStack += SCORING_CONSTANTS.MORNING_FROST_STACK;
-
-    score =
-      base +
-      frostBonus +
-      coldBonus +
-      morningSunFactor +
-      lowHumidityBoost +
-      morningColdStack +
-      drynessScore +
-      cloudRelief +
-      diurnalBoost +
-      heatRelief;
-  } else if (slot === "noon") {
-    // Mittags: Reduzierte Faktoren
-    score =
-      base +
-      0.5 * coldBonus +
-      0.5 * frostBonus +
-      0.6 * drynessScore +
-      0.5 * diurnalBoost +
-      cloudRelief +
-      heatRelief;
-  } else {
-    // Abends: Stark reduzierte Faktoren
-    score =
-      base +
-      0.3 * coldBonus +
-      0.3 * frostBonus +
-      0.5 * drynessScore +
-      0.3 * diurnalBoost +
-      cloudRelief +
-      heatRelief;
+  // === Kälte-Frost-Bonus (Morning > Noon > Evening) ===
+  if (input.tempMin <= 0) {
+    const frostBonus = isMorning ? 15 : isNoon ? 7.5 : 4.5;
+    score += frostBonus;
+  } else if (input.tempMin <= 5) {
+    const coldBonus = isMorning ? 10 : isNoon ? 5 : 3;
+    score += coldBonus;
   }
 
-  return Math.round(clamp(score, 0, 100));
+  // === Trockenheits-Stress (7d ET0 & Precip) ===
+  const dryScore = calculateDrynessScore(input.et0_7d_avg, input.precip_7d_sum, input.wind_3d_avg);
+  const dryWeight = isMorning ? 1.0 : isNoon ? 0.5 : 0.3;
+  score += dryScore * dryWeight;
+
+  // === Diurnal Range Boost ===
+  const diurnalRange = input.tempMax - input.tempMin;
+  const diurnalBoost = calculateDiurnalBoost(diurnalRange);
+  const diurnalWeight = isMorning ? 1.0 : isNoon ? 0.5 : 0.3;
+  score += diurnalBoost * diurnalWeight;
+
+  // === Wolken-Relief ===
+  const cloudRelief = calculateCloudRelief(input.cloudCoverSlot);
+  score += cloudRelief;
+
+  // === Hitze-Relief ===
+  const heatRelief = calculateHeatRelief(input.tempMax, input.precip_7d_sum, input.et0_7d_avg);
+  score += heatRelief;
+
+  // === Morning-Specific: Sonnen-Faktor ===
+  if (isMorning) {
+    const rad = input.radiationMorning;
+    if (rad > 100) {
+      const radBonus = mapRange(rad, 100, 800, 0, 20);
+      score += clamp(radBonus, 0, 20);
+    }
+
+    // Luftfeuchte-Bonus für trockene Morgen
+    const rh = input.relativeHumidityMorning;
+    if (rh < 60) {
+      score += 8;
+    }
+
+    // Morgen-Kälte-Stack
+    if (input.tempMin <= 0) {
+      score += 8;
+    } else if (input.tempMin <= 5) {
+      score += 5;
+    }
+  }
+
+  // === Weidestand-Anpassungen anwenden ===
+  score = score * pastureMultiplier + pastureOffset;
+
+  const final = Math.round(score);
+  return clamp(final, 0, 100);
 }
 
 /**
