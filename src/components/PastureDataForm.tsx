@@ -8,7 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Save, RotateCcw, Calendar, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Save, RotateCcw, Calendar, AlertTriangle, CheckCircle2, Sparkles } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 interface PastureDataFormProps {
   data: PastureData;
@@ -19,6 +20,20 @@ interface PastureDataFormProps {
 export function PastureDataForm({ data, onChange, onSave }: PastureDataFormProps) {
   const handleReset = () => {
     onChange(DEFAULT_PASTURE_DATA);
+  };
+
+  const applyAnalysis = () => {
+    onChange({
+      ...data,
+      herbDiversity: "hoch",
+      buttercupPresence: "gering",
+      cloverPercentage: "10-30",
+      notes: "Weideanalyse: Hohe Kräutervielfalt (Schafgarbe, Löwenzahn, Wegerich, Storchschnabel, etc.), geringer Hahnenfuß-Anteil, typische Fettwiese mit gutem Kleeanteil."
+    });
+    toast({
+      title: "Analysewerte übernommen",
+      description: "Kräutervielfalt: Hoch, Hahnenfuß: Gering, Klee: 10-30%",
+    });
   };
 
   const updateField = <K extends keyof PastureData>(field: K, value: PastureData[K]) => {
@@ -89,6 +104,24 @@ export function PastureDataForm({ data, onChange, onSave }: PastureDataFormProps
           </AlertDescription>
         </Alert>
       )}
+
+      {/* Quick Analysis Button */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="pt-6">
+          <div className="flex items-start gap-4">
+            <Sparkles className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
+            <div className="flex-1 space-y-2">
+              <h3 className="font-semibold">Letzte Weideanalyse anwenden</h3>
+              <p className="text-sm text-muted-foreground">
+                Übernimmt die Werte aus Ihrer letzten Foto-Analyse: Hohe Kräutervielfalt, geringer Hahnenfuß, 10-30% Klee.
+              </p>
+            </div>
+            <Button onClick={applyAnalysis} variant="outline" size="sm" className="flex-shrink-0">
+              Übernehmen
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Wachstumsbedingungen */}
       <Card>
