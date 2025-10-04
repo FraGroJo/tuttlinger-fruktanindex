@@ -13,6 +13,7 @@ import { Loader2, Download, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DEFAULT_LOCATION, type LocationData } from "@/types/fruktan";
 import { exportToCSV, exportToPDF } from "@/lib/export";
+import { exportQuestionnaireToPDF } from "@/lib/questionnaireExport";
 import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
@@ -51,6 +52,22 @@ const Index = () => {
       toast({
         title: "PDF generiert",
         description: "Der Druckdialog wird geöffnet.",
+      });
+    } catch (err) {
+      toast({
+        title: "Fehler",
+        description: "PDF-Export fehlgeschlagen.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleExportQuestionnaire = () => {
+    try {
+      exportQuestionnaireToPDF();
+      toast({
+        title: "Fragenkatalog exportiert",
+        description: "PDF wurde erfolgreich heruntergeladen.",
       });
     } catch (err) {
       toast({
@@ -115,6 +132,16 @@ const Index = () => {
 
         {/* Export-Buttons */}
         <div className="flex flex-wrap gap-2 sm:gap-3 justify-end mb-3 sm:mb-4 md:mb-6">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportQuestionnaire}
+            className="gap-1.5 sm:gap-2 text-xs sm:text-sm h-8 sm:h-9"
+          >
+            <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">Fragenkatalog PDF</span>
+            <span className="sm:hidden">Fragebogen</span>
+          </Button>
           <Button
             variant="outline"
             size="sm"
