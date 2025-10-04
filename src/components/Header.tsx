@@ -36,37 +36,37 @@ export function Header({ location, onLocationChange, fruktanNow }: HeaderProps) 
 
   return (
     <header className="bg-card border-b shadow-sm">
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+        <div className="flex flex-col gap-3 sm:gap-4">
           {/* Titel & Ort */}
           <div className="flex-1">
-            <h1 className="text-3xl font-bold text-foreground mb-2">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground mb-2 leading-tight">
               Fruktan Matrix Reitverein Tuttlingen
             </h1>
             
             {/* Standort-Eingabe */}
             {!isEditing ? (
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <MapPin className="w-4 h-4" />
-                <span className="text-sm font-medium">{location.name}</span>
+              <div className="flex items-center gap-2 text-muted-foreground flex-wrap">
+                <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                <span className="text-xs sm:text-sm font-medium">{location.name}</span>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setIsEditing(true)}
-                  className="h-6 px-2 text-xs"
+                  className="h-5 sm:h-6 px-2 text-xs"
                 >
                   Ändern
                 </Button>
               </div>
             ) : (
-              <div className="flex items-center gap-2 mt-2">
-                <MapPin className="w-4 h-4 text-muted-foreground" />
+              <div className="flex items-center gap-2 mt-2 flex-wrap sm:flex-nowrap">
+                <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
                 <Input
                   type="text"
                   value={tempLocation}
                   onChange={(e) => setTempLocation(e.target.value)}
                   placeholder="Ort oder Koordinaten"
-                  className="h-8 text-sm max-w-xs"
+                  className="h-7 sm:h-8 text-xs sm:text-sm flex-1 min-w-0"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") handleLocationSubmit();
                     if (e.key === "Escape") {
@@ -78,10 +78,10 @@ export function Header({ location, onLocationChange, fruktanNow }: HeaderProps) 
                 <Button
                   size="sm"
                   onClick={handleLocationSubmit}
-                  className="h-8 px-3 gap-1"
+                  className="h-7 sm:h-8 px-2 sm:px-3 gap-1 flex-shrink-0"
                 >
                   <Search className="w-3 h-3" />
-                  OK
+                  <span className="hidden sm:inline">OK</span>
                 </Button>
                 <Button
                   variant="ghost"
@@ -90,9 +90,9 @@ export function Header({ location, onLocationChange, fruktanNow }: HeaderProps) 
                     setTempLocation(location.name);
                     setIsEditing(false);
                   }}
-                  className="h-8 px-3"
+                  className="h-7 sm:h-8 px-2 sm:px-3 flex-shrink-0"
                 >
-                  Abbrechen
+                  <span className="text-xs sm:text-sm">Abbrechen</span>
                 </Button>
               </div>
             )}

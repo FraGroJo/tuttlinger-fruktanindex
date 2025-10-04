@@ -91,10 +91,10 @@ const Index = () => {
         fruktanNow={data?.fruktanNow}
       />
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8">
         {/* Current Conditions */}
         {data.current && (
-          <section className="mb-8 animate-fade-in">
+          <section className="mb-4 sm:mb-6 md:mb-8 animate-fade-in">
             <CurrentConditions 
               current={data.current} 
               source={data.source} 
@@ -105,7 +105,7 @@ const Index = () => {
         )}
 
         {/* Metadaten & Stale-Banner */}
-        <div className="mb-6">
+        <div className="mb-3 sm:mb-4 md:mb-6">
           <MetadataBar
             metadata={data.metadata}
             flags={data.flags}
@@ -114,29 +114,31 @@ const Index = () => {
         </div>
 
         {/* Export-Buttons */}
-        <div className="flex flex-wrap gap-3 justify-end mb-6">
+        <div className="flex flex-wrap gap-2 sm:gap-3 justify-end mb-3 sm:mb-4 md:mb-6">
           <Button
             variant="outline"
             size="sm"
             onClick={handleExportCSV}
-            className="gap-2"
+            className="gap-1.5 sm:gap-2 text-xs sm:text-sm h-8 sm:h-9"
           >
-            <Download className="w-4 h-4" />
-            CSV exportieren
+            <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">CSV exportieren</span>
+            <span className="sm:hidden">CSV</span>
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={handleExportPDF}
-            className="gap-2"
+            className="gap-1.5 sm:gap-2 text-xs sm:text-sm h-8 sm:h-9"
           >
-            <FileText className="w-4 h-4" />
-            PDF-Bericht
+            <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">PDF-Bericht</span>
+            <span className="sm:hidden">PDF</span>
           </Button>
         </div>
 
         {/* Matrix-Karten mit Glassmorphism */}
-        <section className="mb-8">
+        <section className="mb-4 sm:mb-6 md:mb-8">
           <MatrixGrid
             today={data.today}
             tomorrow={data.tomorrow}
@@ -146,7 +148,7 @@ const Index = () => {
         </section>
 
         {/* Trend-Chart */}
-        <section className="mb-8">
+        <section className="mb-4 sm:mb-6 md:mb-8">
           <TrendChart 
             data={trendData} 
             confidence={data.confidence}

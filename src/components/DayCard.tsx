@@ -45,15 +45,15 @@ export function DayCard({ matrix, className = "" }: DayCardProps) {
   else if (diffDays === 2) dayLabel = "Übermorgen";
 
   return (
-    <Card className={`overflow-hidden backdrop-blur-sm bg-card/80 border-2 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl ${className}`}>
+    <Card className={`overflow-hidden backdrop-blur-sm bg-card/80 border-2 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl sm:rounded-2xl ${className}`}>
       {/* Header mit Glassmorphism */}
-      <div className="bg-gradient-to-r from-primary/20 to-primary/10 px-6 py-4 border-b border-border/50 backdrop-blur-sm">
-        <h3 className="font-bold text-foreground text-xl tracking-tight">{dayLabel}</h3>
-        <p className="text-sm text-muted-foreground mt-0.5">{formattedDate}</p>
+      <div className="bg-gradient-to-r from-primary/20 to-primary/10 px-4 sm:px-6 py-3 sm:py-4 border-b border-border/50 backdrop-blur-sm">
+        <h3 className="font-bold text-foreground text-base sm:text-lg md:text-xl tracking-tight">{dayLabel}</h3>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">{formattedDate}</p>
       </div>
 
       {/* Zeitfenster */}
-      <div className="p-6 space-y-5">
+      <div className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 md:space-y-5">
         {slots.map(({ data, icon: Icon, label, time }) => {
           const keyFactors = getKeyFactors(data.reason);
           const hasWarnings = data.flags && (data.flags.length > 0 || data.confidence === "low");
@@ -61,22 +61,22 @@ export function DayCard({ matrix, className = "" }: DayCardProps) {
           return (
             <div
               key={data.slot}
-              className="p-5 rounded-xl bg-gradient-to-br from-muted/40 to-muted/20 hover:from-muted/60 hover:to-muted/30 transition-all duration-200 border border-border/50 shadow-sm"
+              className="p-3 sm:p-4 md:p-5 rounded-lg sm:rounded-xl bg-gradient-to-br from-muted/40 to-muted/20 hover:from-muted/60 hover:to-muted/30 transition-all duration-200 border border-border/50 shadow-sm"
             >
               {/* Slot-Header */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <Icon className="w-6 h-6 text-muted-foreground" />
-                  <div>
-                    <span className="text-base font-semibold text-foreground block">{label}</span>
+              <div className="flex items-center justify-between mb-3 sm:mb-4 gap-2">
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                  <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground flex-shrink-0" />
+                  <div className="min-w-0">
+                    <span className="text-sm sm:text-base font-semibold text-foreground block truncate">{label}</span>
                     <p className="text-xs text-muted-foreground">{time}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 sm:gap-3 md:gap-4 flex-shrink-0">
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <span className="text-4xl font-bold text-foreground cursor-help">
+                        <span className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground cursor-help">
                           {data.temperature_spectrum?.median !== undefined 
                             ? `${data.temperature_spectrum.median.toFixed(1)}°`
                             : "—"}
