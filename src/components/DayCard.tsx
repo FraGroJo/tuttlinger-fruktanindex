@@ -45,15 +45,15 @@ export function DayCard({ matrix, className = "" }: DayCardProps) {
   else if (diffDays === 2) dayLabel = "Übermorgen";
 
   return (
-    <Card className={`overflow-hidden backdrop-blur-sm bg-card/80 border-2 shadow-xl hover:shadow-2xl transition-all duration-300 rounded-2xl ${className}`}>
+    <Card className={`overflow-hidden backdrop-blur-sm bg-card/80 border-2 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl ${className}`}>
       {/* Header mit Glassmorphism */}
-      <div className="bg-gradient-to-r from-primary/20 to-primary/10 px-4 py-3 border-b border-border/50 backdrop-blur-sm">
-        <h3 className="font-semibold text-foreground text-lg">{dayLabel}</h3>
-        <p className="text-xs text-muted-foreground">{formattedDate}</p>
+      <div className="bg-gradient-to-r from-primary/20 to-primary/10 px-6 py-4 border-b border-border/50 backdrop-blur-sm">
+        <h3 className="font-bold text-foreground text-xl tracking-tight">{dayLabel}</h3>
+        <p className="text-sm text-muted-foreground mt-0.5">{formattedDate}</p>
       </div>
 
       {/* Zeitfenster */}
-      <div className="p-5 space-y-4">
+      <div className="p-6 space-y-5">
         {slots.map(({ data, icon: Icon, label, time }) => {
           const keyFactors = getKeyFactors(data.reason);
           const hasWarnings = data.flags && (data.flags.length > 0 || data.confidence === "low");
@@ -61,24 +61,24 @@ export function DayCard({ matrix, className = "" }: DayCardProps) {
           return (
             <div
               key={data.slot}
-              className="p-4 rounded-xl bg-gradient-to-br from-muted/40 to-muted/20 hover:from-muted/60 hover:to-muted/30 transition-all duration-200 border border-border/50"
+              className="p-5 rounded-xl bg-gradient-to-br from-muted/40 to-muted/20 hover:from-muted/60 hover:to-muted/30 transition-all duration-200 border border-border/50 shadow-sm"
             >
               {/* Slot-Header */}
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Icon className="w-5 h-5 text-muted-foreground" />
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <Icon className="w-6 h-6 text-muted-foreground" />
                   <div>
-                    <span className="text-sm font-semibold text-foreground">{label}</span>
+                    <span className="text-base font-semibold text-foreground block">{label}</span>
                     <p className="text-xs text-muted-foreground">{time}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-4">
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <span className="text-3xl font-bold text-foreground cursor-help">
+                        <span className="text-4xl font-bold text-foreground cursor-help">
                           {data.temperature_spectrum?.median !== undefined 
-                            ? `${data.temperature_spectrum.median.toFixed(1)}°C`
+                            ? `${data.temperature_spectrum.median.toFixed(1)}°`
                             : "—"}
                         </span>
                       </TooltipTrigger>
@@ -94,7 +94,7 @@ export function DayCard({ matrix, className = "" }: DayCardProps) {
               </div>
 
               {/* Begründung */}
-              <p className="text-sm text-muted-foreground leading-relaxed mb-3">
+              <p className="text-sm text-muted-foreground leading-relaxed mb-4">
                 {data.reason}
               </p>
 
@@ -105,7 +105,7 @@ export function DayCard({ matrix, className = "" }: DayCardProps) {
 
               {/* Key Factors */}
               {keyFactors.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-2">
+                <div className="flex flex-wrap gap-2 mb-3">
                   {keyFactors.map((factor, idx) => (
                     <span
                       key={idx}
@@ -159,27 +159,27 @@ function TemperatureSpectrumBar({ spectrum }: { spectrum: TemperatureSpectrum })
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="my-2 p-2 rounded bg-background/30 border border-border/30 cursor-help">
-            <div className="flex items-center gap-2 mb-1">
-              <Thermometer className="h-3 w-3 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Temperaturspanne</span>
+          <div className="my-3 p-3 rounded-lg bg-background/40 border border-border/40 cursor-help">
+            <div className="flex items-center gap-2 mb-2">
+              <Thermometer className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium text-muted-foreground">Temperaturspanne</span>
             </div>
-            <div className="relative h-6 bg-gradient-to-r from-blue-500/20 via-yellow-500/20 to-red-500/20 rounded-full overflow-hidden">
+            <div className="relative h-7 bg-gradient-to-r from-blue-500/20 via-yellow-500/20 to-red-500/20 rounded-full overflow-hidden">
               {/* Min-Max Linie */}
-              <div className="absolute inset-0 flex items-center px-2">
-                <div className="w-full h-0.5 bg-gradient-to-r from-blue-500 via-yellow-500 to-red-500" />
+              <div className="absolute inset-0 flex items-center px-3">
+                <div className="w-full h-1 bg-gradient-to-r from-blue-500 via-yellow-500 to-red-500 rounded-full" />
               </div>
               
               {/* Median Marker */}
               <div 
-                className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 bg-foreground rounded-full border-2 border-background shadow-lg"
+                className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 bg-foreground rounded-full border-2 border-background shadow-lg ring-2 ring-primary/20"
                 style={{ left: `${medianPercent}%` }}
               />
             </div>
-            <div className="flex justify-between items-center mt-1 text-xs">
-              <span className="text-muted-foreground">{formatTemp(min)}°C</span>
-              <span className="font-semibold text-foreground">⌀ {formatTemp(median)}°C</span>
-              <span className="text-muted-foreground">{formatTemp(max)}°C</span>
+            <div className="flex justify-between items-center mt-2 text-sm">
+              <span className="text-muted-foreground font-medium">{formatTemp(min)}°C</span>
+              <span className="font-bold text-foreground">⌀ {formatTemp(median)}°C</span>
+              <span className="text-muted-foreground font-medium">{formatTemp(max)}°C</span>
             </div>
           </div>
         </TooltipTrigger>
