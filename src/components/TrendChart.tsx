@@ -97,31 +97,17 @@ export function TrendChart({ data, confidence = "normal", className = "" }: Tren
       <div role="img" aria-label="Trend des Fruktan-Scores über Zeit (EMS farbcodiert)">
         <ResponsiveContainer width="100%" height={380}>
           <ComposedChart data={data} margin={{ top: 10, right: 16, bottom: 8, left: 0 }}>
+            <defs>
+              <linearGradient id="nowLineGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.8" />
+                <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.8" />
+              </linearGradient>
+            </defs>
+            
             {/* Farbbänder für EMS-Schwellen */}
             <ReferenceArea y1={0} y2={EMS.GREEN_MAX} fill="hsl(142, 76%, 36%)" fillOpacity={0.10} />
             <ReferenceArea y1={EMS.GREEN_MAX} y2={EMS.YELLOW_MAX} fill="hsl(38, 92%, 50%)" fillOpacity={0.10} />
             <ReferenceArea y1={EMS.YELLOW_MAX} y2={EMS.RED_MAX} fill="hsl(0, 72%, 51%)" fillOpacity={0.08} />
-
-            {/* Schwellenlinien */}
-            <ReferenceLine y={EMS.GREEN_MAX} stroke="#16a34a" strokeDasharray="4 4" strokeWidth={1.5} opacity={0.6} />
-            <ReferenceLine y={EMS.YELLOW_MAX} stroke="#f59e0b" strokeDasharray="4 4" strokeWidth={1.5} opacity={0.6} />
-            
-            {/* Aktuelle Zeit - vertikale gestrichelte Linie */}
-            <ReferenceLine 
-              x={now} 
-              stroke="#3b82f6" 
-              strokeWidth={3} 
-              strokeDasharray="8 4"
-              opacity={0.85}
-              label={{ 
-                value: 'JETZT', 
-                position: 'top', 
-                fill: '#3b82f6', 
-                fontSize: 13, 
-                fontWeight: 700,
-                offset: 5
-              }} 
-            />
 
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} opacity={0.5} />
             
@@ -145,6 +131,25 @@ export function TrendChart({ data, confidence = "normal", className = "" }: Tren
             />
             
             <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#94a3b8', strokeWidth: 1, strokeDasharray: '5 5' }} />
+            
+            {/* Schwellenlinien */}
+            <ReferenceLine y={EMS.GREEN_MAX} stroke="#16a34a" strokeDasharray="4 4" strokeWidth={1.5} opacity={0.6} />
+            <ReferenceLine y={EMS.YELLOW_MAX} stroke="#f59e0b" strokeDasharray="4 4" strokeWidth={1.5} opacity={0.6} />
+            
+            {/* Aktuelle Zeit - vertikale gestrichelte Linie von oben bis unten */}
+            <ReferenceLine 
+              x={now} 
+              stroke="#3b82f6" 
+              strokeWidth={3} 
+              strokeDasharray="6 4"
+              label={{ 
+                value: '▼ JETZT', 
+                position: 'top', 
+                fill: '#3b82f6', 
+                fontSize: 12, 
+                fontWeight: 700
+              }} 
+            />
             
             <Line
               type="monotone"
