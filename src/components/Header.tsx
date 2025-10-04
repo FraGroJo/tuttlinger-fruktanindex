@@ -1,13 +1,18 @@
 /**
  * Header Komponente
- * Zeigt Titel, Ortsauswahl, Quelle, Stand und aktuellen Fruktan-Wert (EMS)
+ * Zeigt Titel, Kern-KPI und Metadaten minimal an
  */
 
-import { MapPin, Database, Clock, TrendingUp } from "lucide-react";
-import { Input } from "./ui/input";
+import { MapPin, TrendingUp, Info } from "lucide-react";
 import { Button } from "./ui/button";
 import { InfoModal } from "./InfoModal";
-import { type LocationData, type SourceMetadata } from "@/types/fruktan";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { type LocationData } from "@/types/fruktan";
 import { useState } from "react";
 
 interface HeaderProps {
@@ -16,6 +21,7 @@ interface HeaderProps {
   metadata?: {
     dataSource: string;
     localTimestamp: string;
+    modelRunTime?: string;
   };
   fruktanNow?: {
     score: number;
@@ -23,28 +29,13 @@ interface HeaderProps {
   };
 }
 
-export function Header({ location, onLocationChange, metadata, fruktanNow }: HeaderProps) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [tempLocation, setTempLocation] = useState(location.name);
-
-  const handleLocationSubmit = () => {
-    // In einer echten App würde hier Geocoding stattfinden
-    // Für Demo: Akzeptiere Eingabe und behalte Koordinaten
-    onLocationChange({
-      name: tempLocation,
-      lat: location.lat,
-      lon: location.lon,
-    });
-    setIsEditing(false);
-  };
-
-  // Format timestamp für bessere Lesbarkeit
+export function Header({ location, metadata, fruktanNow }: HeaderProps) {
+  // Format timestamp
   const formatTimestamp = (isoString: string) => {
     try {
       return new Date(isoString).toLocaleString("de-DE", {
         day: "2-digit",
         month: "2-digit",
-        year: "numeric",
         hour: "2-digit",
         minute: "2-digit",
         timeZone: "Europe/Berlin",
@@ -73,103 +64,60 @@ export function Header({ location, onLocationChange, metadata, fruktanNow }: Hea
   };
 
   return (
-    <header className="bg-card border-b shadow-sm">
-      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
-        <div className="flex flex-col gap-3 sm:gap-4">
+    <header className="bg-card border-b shadow-sm backdrop-blur-sm">
+      <div className="container mx-auto px-4 py-4 sm:py-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           {/* Titel & Ort */}
           <div className="flex-1">
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground mb-2 leading-tight">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">
               Tuttlinger Fruktanindex
             </h1>
-            
-            {/* Standort-Eingabe */}
-            {!isEditing ? (
-              <div className="flex items-center gap-2 text-muted-foreground flex-wrap">
-                <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-                <span className="text-xs sm:text-sm font-medium">{location.name}</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsEditing(true)}
-                  className="h-5 sm:h-6 px-2 text-xs"
-                >
-                  Ändern
-                </Button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 mt-2 flex-wrap sm:flex-nowrap">
-                <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
-                <Input
-                  type="text"
-                  value={tempLocation}
-                  onChange={(e) => setTempLocation(e.target.value)}
-                  placeholder="Ort oder Koordinaten"
-                  className="h-7 sm:h-8 text-xs sm:text-sm flex-1 min-w-0"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleLocationSubmit();
-                    if (e.key === "Escape") {
-                      setTempLocation(location.name);
-                      setIsEditing(false);
-                    }
-                  }}
-                />
-                <Button
-                  size="sm"
-                  onClick={handleLocationSubmit}
-                  className="h-7 sm:h-8 px-2 sm:px-3 gap-1 flex-shrink-0"
-                >
-                  <span className="hidden sm:inline">OK</span>
-                  <span className="sm:hidden">✓</span>
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setTempLocation(location.name);
-                    setIsEditing(false);
-                  }}
-                  className="h-7 sm:h-8 px-2 sm:px-3 flex-shrink-0"
-                >
-                  <span className="text-xs sm:text-sm">Abbrechen</span>
-                </Button>
-              </div>
-            )}
-
-            {/* Metadata-Zeile: Quelle • Stand • Fruktan (jetzt, EMS) */}
-            {metadata && (
-              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-muted-foreground">
-                <div className="flex items-center gap-1.5">
-                  <Database className="w-3.5 h-3.5" />
-                  <span>Quelle: {metadata.dataSource}</span>
-                </div>
-                <span className="hidden sm:inline text-muted-foreground/50">•</span>
-                <div className="flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>Stand: {formatTimestamp(metadata.localTimestamp)}</span>
-                </div>
-                {fruktanNow && (
-                  <>
-                    <span className="hidden sm:inline text-muted-foreground/50">•</span>
-                    <div className="flex items-center gap-1.5">
-                      <TrendingUp className="w-3.5 h-3.5" />
-                      <span>
-                        Fruktan (jetzt, EMS): <strong className="font-semibold text-foreground">{fruktanNow.score}</strong>{" "}
-                        <span className={`font-semibold ${getLevelColor(fruktanNow.level)}`}>
-                          ({getLevelLabel(fruktanNow.level)})
-                        </span>
-                      </span>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <MapPin className="w-3.5 h-3.5" />
+              <span>{location.name}</span>
+            </div>
           </div>
 
-          {/* Info-Modal */}
-          <div className="flex items-center">
-            <InfoModal emsMode={true} />
-          </div>
+          {/* Kern-KPI */}
+          {fruktanNow && (
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <div className="flex items-center gap-2 justify-end mb-1">
+                  <TrendingUp className="w-5 h-5 text-muted-foreground" />
+                  <span className="text-sm font-medium text-muted-foreground">Fruktan (jetzt, EMS)</span>
+                </div>
+                <div className="flex items-baseline gap-2 justify-end">
+                  <span className="text-3xl font-bold text-foreground">{fruktanNow.score}</span>
+                  <span className={`text-lg font-semibold ${getLevelColor(fruktanNow.level)}`}>
+                    {getLevelLabel(fruktanNow.level)}
+                  </span>
+                </div>
+              </div>
+              <InfoModal emsMode={true} />
+            </div>
+          )}
         </div>
+
+        {/* Metadata (klein darunter) */}
+        {metadata && (
+          <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+            <span>Quelle: {metadata.dataSource}</span>
+            <span>•</span>
+            <span>Stand: {formatTimestamp(metadata.localTimestamp)}</span>
+            {metadata.modelRunTime && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="w-3 h-3 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">Modell-Laufzeit: {metadata.modelRunTime}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
+        )}
       </div>
     </header>
   );

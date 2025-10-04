@@ -1,18 +1,19 @@
 /**
- * TrendChart Komponente
- * Zeigt farbcodierten EMS-Trend mit Schwellenwerten und Frost-Markern
+ * TrendChart Komponente (Area-Chart mit farbiger Fläche)
+ * Zeigt EMS-Trend mit Schwellenwerten, Frost-Markern und Jetzt-Linie
  */
 
 import * as React from "react";
-import { ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceArea, ReferenceLine } from "recharts";
+import { motion } from "framer-motion";
+import { ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceArea, ReferenceLine } from "recharts";
 import { type TrendDataPoint } from "@/types/fruktan";
 
 interface TrendChartProps {
   data: TrendDataPoint[];
   confidence?: "normal" | "low";
   className?: string;
-  nowTs?: string;        // Aktueller Zeitstempel (ISO String)
-  timeZone?: string;     // Zeitzone (default: Europe/Berlin)
+  nowTs?: string;
+  timeZone?: string;
 }
 
 const EMS = { GREEN_MAX: 29, YELLOW_MAX: 59, RED_MAX: 100 };
@@ -50,13 +51,13 @@ const fmtNowLabel = (iso?: string, tz = "Europe/Berlin") =>
         minute: "2-digit",
       })
         .format(new Date(iso))
-        .replace(",", "") // "04.10. 14:00"
+        .replace(",", "")
     : "";
 
 const fmtNumber = (n: number) =>
   new Intl.NumberFormat("de-DE", { maximumFractionDigits: 0 }).format(n);
 
-// Finde nächstliegenden Datenpunkt zu einem Zeitstempel
+// Nächstliegenden Datenpunkt finden
 function nearestTs(data: TrendDataPoint[], targetIso?: string): string | undefined {
   if (!targetIso || !data?.length) return;
   const t = new Date(targetIso).getTime();
@@ -72,15 +73,14 @@ function nearestTs(data: TrendDataPoint[], targetIso?: string): string | undefin
   return best;
 }
 
-
 const CustomTooltip: React.FC<any> = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   const p = payload[0]?.payload;
   const col = riskColor(p.score);
   const labelText = p?.timestamp ? fmtTime(p.timestamp) : label;
   const level =
-    p.score <= EMS.GREEN_MAX ? "Sicher (Grün)" :
-    p.score <= EMS.YELLOW_MAX ? "Erhöht (Gelb)" : "Hoch (Rot)";
+    p.score <= EMS.GREEN_MAX ? "Sicher" :
+    p.score <= EMS.YELLOW_MAX ? "Erhöht" : "Hoch";
   return (
     <div className="rounded-xl border border-border bg-card/95 p-3 shadow-sm">
       <div className="text-xs text-muted-foreground">{labelText}</div>
@@ -88,81 +88,84 @@ const CustomTooltip: React.FC<any> = ({ active, payload, label }) => {
         <span className="inline-block h-2 w-2 rounded-full" style={{ background: col }} />
         <span className="font-medium text-card-foreground">Score: {fmtNumber(p.score)}</span>
       </div>
-      <div className="mt-1 text-xs text-muted-foreground">{level}{p.isFrost ? " • Frost" : ""}</div>
+      <div className="mt-1 text-xs text-muted-foreground">
+        {level} • {p.temperature.toFixed(1)}°C{p.isFrost ? " • Frost" : ""}
+      </div>
     </div>
   );
 };
 
+// Custom Dot mit Badge für "Jetzt"
+const RiskDotWithBadge = React.memo(({ cx, cy, payload, nowX }: any) => {
+  const fill = riskColor(payload.score);
+  const isNow = nowX && payload.timestamp === nowX;
+  
+  return (
+    <>
+      {payload.isFrost && (
+        <text x={cx} y={cy - 10} textAnchor="middle" fontSize="12" fill="hsl(220, 10%, 45%)">✽</text>
+      )}
+      <circle cx={cx} cy={cy} r={3} fill={fill} stroke="hsl(220, 25%, 20%)" strokeWidth={0.5} />
+      {isNow && (
+        <>
+          <circle cx={cx} cy={cy} r={6} fill="none" stroke="#ffffff" strokeWidth={2.5} />
+          <circle cx={cx} cy={cy} r={7.5} fill="none" stroke="#334155" strokeWidth={1.5} strokeDasharray="3 3" />
+        </>
+      )}
+    </>
+  );
+});
+
 export function TrendChart({ data, confidence = "normal", className = "", nowTs, timeZone = "Europe/Berlin" }: TrendChartProps) {
   const yDomain: [number, number] = [0, 100];
   
-  // Finde nächstliegenden Datenpunkt und prüfe Bereich
   const minTs = data?.[0]?.timestamp;
   const maxTs = data?.[data.length - 1]?.timestamp;
   const nowX = React.useMemo(() => nearestTs(data, nowTs), [data, nowTs]);
   const nowInRange = nowTs && minTs && maxTs &&
     new Date(minTs) <= new Date(nowTs) && new Date(nowTs) <= new Date(maxTs);
   
-  // Dynamisches Label
   const nowLabel = React.useMemo(
     () => (nowTs ? `Jetzt (${fmtNowLabel(nowTs, timeZone)})` : "Jetzt"),
     [nowTs, timeZone]
   );
   
-  // RiskDot mit Badge für "Jetzt"-Punkt
-  const RiskDotWithBadge = React.useCallback((props: any) => {
-    const { cx, cy, payload } = props;
-    const fill = riskColor(payload.score);
-    const isNow = nowX && payload.timestamp === nowX;
-    
-    return (
-      <>
-        {payload.isFrost ? (
-          <g>
-            <text x={cx} y={cy - 10} textAnchor="middle" fontSize="12" fill="hsl(220, 10%, 45%)">✽</text>
-          </g>
-        ) : null}
-        {/* Normaler Punkt */}
-        <circle cx={cx} cy={cy} r={3.5} fill={fill} stroke="hsl(220, 25%, 20%)" strokeWidth={0.5} />
-        {/* Now-Badge: weißer Ring + größerer Umriss */}
-        {isNow ? (
-          <>
-            <circle cx={cx} cy={cy} r={6.5} fill="none" stroke="#ffffff" strokeWidth={3} />
-            <circle cx={cx} cy={cy} r={7.5} fill="none" stroke="#334155" strokeWidth={1.5} strokeDasharray="3 3" />
-          </>
-        ) : null}
-      </>
-    );
-  }, [nowX]);
-
   return (
-    <div className={`rounded-xl sm:rounded-2xl border border-border bg-card p-3 sm:p-4 md:p-6 shadow-lg ${className}`}>
-      <div className="mb-3 sm:mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <h3 className="text-base sm:text-lg font-semibold text-card-foreground">Trend-Verlauf (EMS)</h3>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: 0.2 }}
+      className={`rounded-2xl border border-border bg-card/90 p-4 sm:p-6 shadow-lg backdrop-blur-sm ${className}`}
+    >
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <h3 className="text-lg font-semibold text-card-foreground">Trend-Verlauf (EMS)</h3>
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="text-xs sm:text-sm text-muted-foreground">Fruktan-Risiko (EMS) • stündlich</div>
+          <div className="text-sm text-muted-foreground">Fruktan-Risiko • stündlich</div>
           {confidence === "low" && (
-            <span className="text-xs px-2 py-0.5 sm:py-1 rounded bg-warning/10 text-warning border border-warning/30">
+            <span className="text-xs px-2 py-1 rounded bg-warning/10 text-warning border border-warning/30">
               Geringe Konfidenz
             </span>
           )}
         </div>
       </div>
 
-      <div role="img" aria-label="Trend des Fruktan-Scores über Zeit (EMS farbcodiert)" className="w-full overflow-x-auto">
-        <ResponsiveContainer width="100%" height={280} className="sm:!h-[320px] md:!h-[380px]">
-          <ComposedChart data={data} margin={{ top: 10, right: 8, bottom: 8, left: -10 }} className="sm:!mr-4 md:!mr-4">
+      <div role="img" aria-label="Trend des Fruktan-Scores über Zeit" className="w-full overflow-x-auto">
+        <ResponsiveContainer width="100%" height={320}>
+          <ComposedChart data={data} margin={{ top: 10, right: 8, bottom: 8, left: -10 }}>
             <defs>
-              <linearGradient id="nowLineGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.8" />
-                <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.8" />
+              {/* Gradient für Area-Füllung nach Score */}
+              <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="hsl(0, 72%, 51%)" stopOpacity={0.8} />
+                <stop offset="40%" stopColor="hsl(38, 92%, 50%)" stopOpacity={0.6} />
+                <stop offset="70%" stopColor="hsl(142, 76%, 36%)" stopOpacity={0.4} />
+                <stop offset="100%" stopColor="hsl(142, 76%, 36%)" stopOpacity={0.1} />
               </linearGradient>
             </defs>
             
-            {/* Farbbänder für EMS-Schwellen */}
-            <ReferenceArea y1={0} y2={EMS.GREEN_MAX} fill="hsl(142, 76%, 36%)" fillOpacity={0.10} />
-            <ReferenceArea y1={EMS.GREEN_MAX} y2={EMS.YELLOW_MAX} fill="hsl(38, 92%, 50%)" fillOpacity={0.10} />
-            <ReferenceArea y1={EMS.YELLOW_MAX} y2={EMS.RED_MAX} fill="hsl(0, 72%, 51%)" fillOpacity={0.08} />
+            {/* Hintergrundbänder für EMS-Schwellen */}
+            <ReferenceArea y1={0} y2={EMS.GREEN_MAX} fill="hsl(142, 76%, 36%)" fillOpacity={0.08} />
+            <ReferenceArea y1={EMS.GREEN_MAX} y2={EMS.YELLOW_MAX} fill="hsl(38, 92%, 50%)" fillOpacity={0.08} />
+            <ReferenceArea y1={EMS.YELLOW_MAX} y2={EMS.RED_MAX} fill="hsl(0, 72%, 51%)" fillOpacity={0.06} />
 
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} opacity={0.5} />
             
@@ -171,7 +174,6 @@ export function TrendChart({ data, confidence = "normal", className = "", nowTs,
               tickFormatter={(ts) => fmtAxisTime(ts, timeZone)}
               stroke="#64748b"
               fontSize={10}
-              className="sm:!text-xs"
               tickLine={false}
               tick={{ fill: '#64748b' }}
               minTickGap={20}
@@ -184,7 +186,6 @@ export function TrendChart({ data, confidence = "normal", className = "", nowTs,
               domain={yDomain}
               stroke="#64748b"
               fontSize={10}
-              className="sm:!text-xs"
               tickLine={false}
               tickFormatter={fmtNumber}
               tick={{ fill: '#64748b' }}
@@ -193,8 +194,7 @@ export function TrendChart({ data, confidence = "normal", className = "", nowTs,
                 value: 'Score', 
                 angle: -90, 
                 position: 'insideLeft', 
-                style: { fontSize: 11, fill: '#475569', fontWeight: 500 },
-                className: 'sm:!text-xs'
+                style: { fontSize: 11, fill: '#475569', fontWeight: 500 }
               }}
             />
             
@@ -204,18 +204,18 @@ export function TrendChart({ data, confidence = "normal", className = "", nowTs,
             <ReferenceLine y={EMS.GREEN_MAX} stroke="#16a34a" strokeDasharray="4 4" strokeWidth={1.5} opacity={0.6} />
             <ReferenceLine y={EMS.YELLOW_MAX} stroke="#f59e0b" strokeDasharray="4 4" strokeWidth={1.5} opacity={0.6} />
             
-            {/* Zukunfts-Overlay (nur wenn now im Bereich) */}
+            {/* Zukunfts-Overlay */}
             {nowInRange && nowX && (
               <ReferenceArea
                 x1={nowX}
                 x2={maxTs}
                 fill="#334155"
-                fillOpacity={0.06}
+                fillOpacity={0.04}
                 ifOverflow="hidden"
               />
             )}
             
-            {/* "JETZT"-Marker - nur vertikale gestrichelte Linie mit dynamischem Label */}
+            {/* "Jetzt"-Linie */}
             {nowInRange && nowX && (
               <ReferenceLine
                 x={nowX}
@@ -226,18 +226,28 @@ export function TrendChart({ data, confidence = "normal", className = "", nowTs,
                   value: nowLabel,
                   position: "top",
                   fill: "#334155",
-                  fontSize: 10,
-                  className: "sm:!text-xs"
+                  fontSize: 10
                 }}
               />
             )}
             
+            {/* Area-Chart mit Farbgradient */}
+            <Area
+              type="monotone"
+              dataKey="score"
+              stroke="none"
+              fill="url(#colorScore)"
+              fillOpacity={1}
+              isAnimationActive={false}
+            />
+            
+            {/* Linie darüber */}
             <Line
               type="monotone"
               dataKey="score"
               stroke="#0f172a"
               strokeWidth={2}
-              dot={RiskDotWithBadge}
+              dot={(props: any) => <RiskDotWithBadge {...props} nowX={nowX} />}
               activeDot={{ r: 5, stroke: '#0f172a', strokeWidth: 2, fill: '#fff' }}
               isAnimationActive={false}
             />
@@ -246,24 +256,24 @@ export function TrendChart({ data, confidence = "normal", className = "", nowTs,
       </div>
 
       {/* Legende */}
-      <div className="mt-3 sm:mt-4 md:mt-5 pt-3 sm:pt-4 border-t border-slate-100 grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center sm:justify-center gap-3 sm:gap-4 md:gap-6 text-xs sm:text-sm text-slate-600">
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <span className="inline-block h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full bg-[#16a34a] shadow-sm flex-shrink-0" />
-          <span className="font-medium">Sicher (0–29)</span>
+      <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-center gap-4 text-xs text-slate-600">
+        <div className="flex items-center gap-2">
+          <span className="inline-block h-3 w-3 rounded-full bg-[#16a34a]" />
+          <span>Sicher (0–29)</span>
         </div>
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <span className="inline-block h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full bg-[#f59e0b] shadow-sm flex-shrink-0" />
-          <span className="font-medium">Erhöht (30–59)</span>
+        <div className="flex items-center gap-2">
+          <span className="inline-block h-3 w-3 rounded-full bg-[#f59e0b]" />
+          <span>Erhöht (30–59)</span>
         </div>
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <span className="inline-block h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full bg-[#ef4444] shadow-sm flex-shrink-0" />
-          <span className="font-medium">Hoch (60–100)</span>
+        <div className="flex items-center gap-2">
+          <span className="inline-block h-3 w-3 rounded-full bg-[#ef4444]" />
+          <span>Hoch (60–100)</span>
         </div>
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <span className="text-slate-500 text-sm sm:text-base">✽</span>
-          <span className="font-medium">Frost (≤0°C)</span>
+        <div className="flex items-center gap-2">
+          <span className="text-slate-500">✽</span>
+          <span>Frost (≤0°C)</span>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

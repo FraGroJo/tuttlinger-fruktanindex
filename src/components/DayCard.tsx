@@ -1,12 +1,13 @@
 /**
- * DayCard Komponente
- * Zeigt die Fruktan-Matrix für einen einzelnen Tag an (3 Zeitfenster)
+ * DayCard Komponente (kompakte UX-Version)
+ * Zeigt 3 Zeitfenster nebeneinander mit Icons, Temperatur und Score
  */
 
-import { type DayMatrix, type TemperatureSpectrum } from "@/types/fruktan";
+import { motion } from "framer-motion";
+import { type DayMatrix, type TemperatureSpectrum, type TimeSlotScore } from "@/types/fruktan";
 import { RiskBadge } from "./RiskBadge";
 import { Card } from "./ui/card";
-import { Sunrise, Sun, Sunset, Thermometer } from "lucide-react";
+import { Sunrise, Sun, Sunset, Thermometer, Cloud, CloudRain, Snowflake } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -20,7 +21,12 @@ interface DayCardProps {
 }
 
 export function DayCard({ matrix, className = "" }: DayCardProps) {
-  const slots = [
+  const slots: Array<{
+    data: TimeSlotScore;
+    icon: typeof Sunrise;
+    label: string;
+    time: string;
+  }> = [
     { data: matrix.morning, icon: Sunrise, label: "Morgens", time: "05:00–11:00" },
     { data: matrix.noon, icon: Sun, label: "Mittags", time: "11:00–16:00" },
     { data: matrix.evening, icon: Sunset, label: "Abends", time: "16:00–21:00" },
@@ -46,101 +52,77 @@ export function DayCard({ matrix, className = "" }: DayCardProps) {
   else if (diffDays === 3) dayLabel = "Tag 3";
 
   return (
-    <Card className={`overflow-hidden backdrop-blur-sm bg-card/80 border-2 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl sm:rounded-2xl ${className}`}>
-      {/* Header mit Glassmorphism */}
-      <div className="bg-gradient-to-r from-primary/20 to-primary/10 px-4 sm:px-6 py-3 sm:py-4 border-b border-border/50 backdrop-blur-sm">
-        <h3 className="font-bold text-foreground text-base sm:text-lg md:text-xl tracking-tight">{dayLabel}</h3>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">{formattedDate}</p>
-      </div>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      whileHover={{ scale: 1.02 }}
+    >
+      <Card className={`overflow-hidden backdrop-blur-sm bg-card/90 border shadow-lg rounded-2xl ${className}`}>
+        {/* Header */}
+        <div className="bg-gradient-to-r from-primary/10 to-primary/5 px-4 py-3 border-b">
+          <h3 className="font-bold text-foreground text-lg">{dayLabel}</h3>
+          <p className="text-xs text-muted-foreground">{formattedDate}</p>
+        </div>
 
-      {/* Zeitfenster */}
-      <div className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 md:space-y-5">
-        {slots.map(({ data, icon: Icon, label, time }) => {
-          const keyFactors = getKeyFactors(data.reason);
-          const hasWarnings = data.flags && (data.flags.length > 0 || data.confidence === "low");
+        {/* 3 Segmente nebeneinander */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x">
+          {slots.map(({ data, icon: Icon, label, time }) => {
+            const weatherIcon = getWeatherIcon(data);
+            
+            return (
+              <TooltipProvider key={data.slot}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="p-4 hover:bg-muted/20 transition-colors cursor-help">
+                      {/* Icon & Label */}
+                      <div className="flex items-center gap-2 mb-3">
+                        <Icon className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-xs font-medium text-muted-foreground">{label}</span>
+                        {weatherIcon && (
+                          <span className="ml-auto">{weatherIcon}</span>
+                        )}
+                      </div>
 
-          return (
-            <div
-              key={data.slot}
-              className="p-3 sm:p-4 md:p-5 rounded-lg sm:rounded-xl bg-gradient-to-br from-muted/40 to-muted/20 hover:from-muted/60 hover:to-muted/30 transition-all duration-200 border border-border/50 shadow-sm"
-            >
-              {/* Slot-Header */}
-              <div className="flex items-center justify-between mb-3 sm:mb-4 gap-2">
-                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                  <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground flex-shrink-0" />
-                  <div className="min-w-0">
-                    <span className="text-sm sm:text-base font-semibold text-foreground block truncate">{label}</span>
-                    <p className="text-xs text-muted-foreground">{time}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 sm:gap-3 md:gap-4 flex-shrink-0">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground cursor-help">
+                      {/* Temperatur & Score */}
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="text-3xl font-bold text-foreground">
                           {data.temperature_spectrum?.median !== undefined 
                             ? `${data.temperature_spectrum.median.toFixed(1)}°`
                             : "—"}
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="text-xs">
-                          Median-Temperatur im Zeitfenster ({time})
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  <RiskBadge level={data.level} score={data.score} />
-                </div>
-              </div>
+                        </div>
+                        <RiskBadge level={data.level} score={data.score} className="scale-90" />
+                      </div>
 
-              {/* Begründung */}
-              <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-                {data.reason}
-              </p>
-
-              {/* Temperatur-Spektrum */}
-              {data.temperature_spectrum && (
-                <TemperatureSpectrumBar spectrum={data.temperature_spectrum} />
-              )}
-
-              {/* Key Factors */}
-              {keyFactors.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {keyFactors.map((factor, idx) => (
-                    <span
-                      key={idx}
-                      className="px-2.5 py-1 text-xs font-medium rounded-full bg-primary/15 text-primary border border-primary/30 shadow-sm"
-                    >
-                      {factor}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Validierungs-Warnung */}
-              {hasWarnings && (
-                <div className="mt-3 p-2 bg-warning/10 border border-warning/30 rounded-lg">
-                  <p className="text-xs text-warning font-medium flex items-center gap-1">
-                    <span className="inline-block w-1 h-1 rounded-full bg-warning"></span>
-                    Eingeschränkte Datenqualität
-                    {data.confidence === "low" && " • Vertrauen: niedrig"}
-                  </p>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </Card>
+                      {/* Temperatur-Bar (kompakt) */}
+                      {data.temperature_spectrum && (
+                        <TempBarMini spectrum={data.temperature_spectrum} />
+                      )}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <div className="text-xs space-y-1">
+                      <p className="font-semibold">{label} ({time})</p>
+                      {data.temperature_spectrum && (
+                        <p>Temp: {data.temperature_spectrum.min.toFixed(1)}° – {data.temperature_spectrum.median.toFixed(1)}° – {data.temperature_spectrum.max.toFixed(1)}°</p>
+                      )}
+                      <p className="text-muted-foreground leading-relaxed">{data.reason}</p>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            );
+          })}
+        </div>
+      </Card>
+    </motion.div>
   );
 }
 
 /**
- * Temperatur-Spektrum-Leiste
+ * Mini Temperatur-Bar (ohne Labels)
  */
-function TemperatureSpectrumBar({ spectrum }: { spectrum: TemperatureSpectrum }) {
-  // Safe-guards gegen undefined/NaN
+function TempBarMini({ spectrum }: { spectrum: TemperatureSpectrum }) {
   const min = spectrum.min ?? 0;
   const max = spectrum.max ?? 0;
   const median = spectrum.median ?? ((min + max) / 2);
@@ -148,78 +130,38 @@ function TemperatureSpectrumBar({ spectrum }: { spectrum: TemperatureSpectrum })
   const range = max - min;
   const medianPercent = range > 0 ? ((median - min) / range) * 100 : 50;
   
-  // Zahlformatierung
-  const formatTemp = (temp: number) => {
-    return new Intl.NumberFormat('de-DE', { 
-      minimumFractionDigits: 1, 
-      maximumFractionDigits: 1 
-    }).format(temp);
-  };
-  
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="my-3 p-3 rounded-lg bg-background/40 border border-border/40 cursor-help">
-            <div className="flex items-center gap-2 mb-2">
-              <Thermometer className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium text-muted-foreground">Temperaturspanne</span>
-            </div>
-            <div className="relative h-7 bg-gradient-to-r from-blue-500/20 via-yellow-500/20 to-red-500/20 rounded-full overflow-hidden">
-              {/* Min-Max Linie */}
-              <div className="absolute inset-0 flex items-center px-3">
-                <div className="w-full h-1 bg-gradient-to-r from-blue-500 via-yellow-500 to-red-500 rounded-full" />
-              </div>
-              
-              {/* Median Marker */}
-              <div 
-                className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 bg-foreground rounded-full border-2 border-background shadow-lg ring-2 ring-primary/20"
-                style={{ left: `${medianPercent}%` }}
-              />
-            </div>
-            <div className="flex justify-between items-center mt-2 text-sm">
-              <span className="text-muted-foreground font-medium">{formatTemp(min)}°C</span>
-              <span className="font-bold text-foreground">⌀ {formatTemp(median)}°C</span>
-              <span className="text-muted-foreground font-medium">{formatTemp(max)}°C</span>
-            </div>
-          </div>
-        </TooltipTrigger>
-        <TooltipContent>
-          <div className="text-xs space-y-1">
-            <div>Min: {formatTemp(min)}°C</div>
-            <div>Median: {formatTemp(median)}°C</div>
-            <div>Max: {formatTemp(max)}°C</div>
-            {spectrum.p10 !== undefined && <div>P10: {formatTemp(spectrum.p10)}°C</div>}
-            {spectrum.p90 !== undefined && <div>P90: {formatTemp(spectrum.p90)}°C</div>}
-          </div>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <div className="relative h-2 bg-gradient-to-r from-blue-400/20 via-yellow-400/20 to-red-400/20 rounded-full overflow-hidden">
+      {/* Median Marker */}
+      <div 
+        className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2 h-2 bg-foreground rounded-full border border-background"
+        style={{ left: `${medianPercent}%` }}
+      />
+    </div>
   );
 }
 
 /**
- * Extrahiert Schlüsselwörter aus der Begründung für Mini-Annotationen
+ * Wetter-Icon basierend auf Bedingungen
  */
-function getKeyFactors(reason: string): string[] {
-  const factors: string[] = [];
+function getWeatherIcon(data: TimeSlotScore): JSX.Element | null {
+  const reason = data.reason.toLowerCase();
   
-  const keywords = [
-    { pattern: /frost/i, label: "❄️ Frost" },
-    { pattern: /kalt/i, label: "🌡️ Kalt" },
-    { pattern: /sonn|strahl|einstrahlung/i, label: "☀️ Sonne" },
-    { pattern: /et0|verdunstung|trockenstress|trocken/i, label: "💧 Trockenstress" },
-    { pattern: /bewölk|wolken/i, label: "☁️ Bewölkung" },
-    { pattern: /niederschlag|regen/i, label: "🌧️ Niederschlag" },
-    { pattern: /wind/i, label: "💨 Wind" },
-    { pattern: /günstig|gering/i, label: "✅ Günstig" },
-  ];
+  if (reason.includes("frost") || data.temperature_spectrum?.min !== undefined && data.temperature_spectrum.min <= 0) {
+    return <Snowflake className="w-4 h-4 text-blue-400" />;
+  }
   
-  keywords.forEach(({ pattern, label }) => {
-    if (pattern.test(reason) && !factors.includes(label)) {
-      factors.push(label);
-    }
-  });
+  if (reason.includes("niederschlag") || reason.includes("regen")) {
+    return <CloudRain className="w-4 h-4 text-blue-500" />;
+  }
   
-  return factors.slice(0, 3); // Max 3 Faktoren anzeigen
+  if (reason.includes("bewölk") || reason.includes("wolken")) {
+    return <Cloud className="w-4 h-4 text-slate-400" />;
+  }
+  
+  if (reason.includes("sonn") || reason.includes("strahl")) {
+    return <Sun className="w-4 h-4 text-yellow-500" />;
+  }
+  
+  return null;
 }

@@ -2,6 +2,8 @@
  * Minimales Pferdeprofil für pferdeindividuelle Weidezeit-Berechnung
  */
 
+import type { RiskLevel } from "./fruktan";
+
 export interface HorseMinimal {
   id: string;
   name: string;
@@ -39,6 +41,8 @@ export interface TurnoutRecommendation {
   horse_id: string;
   window: "morning" | "noon" | "evening";
   turnout_min: number;
+  score: number; // Window-Score
+  level: RiskLevel; // Window-Level
   explain: {
     NSC_budget_g: number;
     base_nsc_g: number;

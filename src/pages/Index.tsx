@@ -10,7 +10,7 @@ import { MetadataBar } from "@/components/MetadataBar";
 import { CurrentConditions } from "@/components/CurrentConditions";
 import { PastureDataForm } from "@/components/PastureDataForm";
 import { HorseList } from "@/components/HorseList";
-import { TurnoutRecommendations } from "@/components/TurnoutRecommendations";
+import { TurnoutMatrix } from "@/components/TurnoutMatrix";
 import { useFruktanData } from "@/hooks/useFruktanData";
 import { useHorses } from "@/hooks/useHorses";
 import { Loader2, Download, FileText } from "lucide-react";
@@ -207,7 +207,11 @@ const Index = () => {
       <Header
         location={location}
         onLocationChange={setLocation}
-        metadata={data?.metadata}
+        metadata={{
+          dataSource: data?.metadata.dataSource,
+          localTimestamp: data?.metadata.localTimestamp,
+          modelRunTime: data?.metadata.modelRunTime,
+        }}
         fruktanNow={data?.fruktanNow}
       />
 
@@ -365,7 +369,7 @@ const Index = () => {
                     </Button>
                   </div>
 
-                  <TurnoutRecommendations
+                  <TurnoutMatrix
                     recommendations={getTurnoutRecommendations()}
                     horses={horses}
                     date={selectedDate}

@@ -99,6 +99,8 @@ export function calculateTurnoutForWindow(
     horse_id: horse.id,
     window: "morning", // wird vom Aufrufer überschrieben
     turnout_min,
+    score: windowScore,
+    level: windowLevel,
     explain: {
       NSC_budget_g,
       base_nsc_g,
