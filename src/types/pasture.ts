@@ -6,45 +6,47 @@ export interface PastureData {
   // Metadata
   savedAt?: string; // ISO timestamp when data was saved
   
-  // Grasbestand (20% Einfluss)
-  grassType: "weidelgras" | "wiesenrispe" | "wiesenschwingel" | "rotschwingel" | "mix";
-  cloverPercentage: "0-10" | "10-30" | ">30";
-  pastureAge: "<1" | "1-3" | "3-10" | ">10"; // Jahre
-
-  // Wachstumsstadium (25% Einfluss)
+  // Wachstumsbedingungen (sich verändernde Parameter)
   grassHeight: "<5" | "5-10" | "10-15" | "15-20" | ">20"; // cm
   growthPhase: "ruhend" | "langsam" | "aktiv" | "sehr-schnell";
-  floweringVisible: "ja" | "nein" | "teilweise";
+  cloverPercentage: "0-10" | "10-30" | ">30";
+  
+  // Kräuter & Unkräuter
+  buttercupPresence: "keiner" | "gering" | "mittel" | "hoch";
+  herbDiversity: "keine" | "gering" | "mittel" | "hoch";
+  
+  // Notizen
+  notes: string;
 
-  // Beweidungs-/Schnitthistorie (30% Einfluss)
+  // Beibehaltene Parameter für Berechnung (nicht mehr in Form sichtbar)
+  grassType: "weidelgras" | "wiesenrispe" | "wiesenschwingel" | "rotschwingel" | "mix";
+  pastureAge: "<1" | "1-3" | "3-10" | ">10";
+  floweringVisible: "ja" | "nein" | "teilweise";
   daysSinceLastUse: "0-3" | "4-7" | "8-14" | "15-21" | "22-28" | ">28";
-  stubbleHeight: "<3" | "3-5" | "5-8" | ">8"; // cm
+  stubbleHeight: "<3" | "3-5" | "5-8" | ">8";
   grazingIntensity: "stark" | "mittel" | "leicht" | "ungenutzt";
   grazingType: "rotation" | "stand" | "portion";
-
-  // Düngung & Nährstoffe (15% Einfluss)
   lastNFertilization: "<2w" | "2-4w" | "4-8w" | ">8w" | "keine";
-  nAmount: "0" | "1-40" | "40-80" | "80-120" | ">120"; // kg/ha
+  nAmount: "0" | "1-40" | "40-80" | "80-120" | ">120";
   organicFertilization: boolean;
-
-  // Bodenbedingungen (5% Einfluss)
   soilType: "sandig" | "lehmig" | "tonig" | "torf" | "mix";
   soilMoisture: "trocken" | "normal" | "feucht" | "nass";
   drainage: "gut" | "mittel" | "schlecht" | "staunaesse";
-
-  // Stress-Indikatoren (5% Einfluss)
   visibleStress: "verfaerbung" | "welke" | "flecken" | "keine";
   laminitisSensitive: boolean;
-  notes: string;
 }
 
 export const DEFAULT_PASTURE_DATA: PastureData = {
   savedAt: undefined,
-  grassType: "mix",
-  cloverPercentage: "0-10",
-  pastureAge: "1-3",
   grassHeight: "10-15",
   growthPhase: "aktiv",
+  cloverPercentage: "0-10",
+  buttercupPresence: "keiner",
+  herbDiversity: "gering",
+  notes: "",
+  // Defaults für Berechnungsparameter
+  grassType: "mix",
+  pastureAge: "1-3",
   floweringVisible: "nein",
   daysSinceLastUse: "8-14",
   stubbleHeight: "3-5",
@@ -58,7 +60,6 @@ export const DEFAULT_PASTURE_DATA: PastureData = {
   drainage: "gut",
   visibleStress: "keine",
   laminitisSensitive: false,
-  notes: "",
 };
 
 /**
@@ -191,6 +192,24 @@ export function calculatePastureAdjustments(data: PastureData): {
   if (data.floweringVisible === "ja") {
     offset += 5;
     reasons.push("Blütenstände sichtbar (+5 Punkte)");
+  }
+
+  // Hahnenfuß-Anteil (erhöht Risiko)
+  if (data.buttercupPresence === "hoch") {
+    offset += 8;
+    reasons.push("Hoher Hahnenfuß-Anteil (+8 Punkte)");
+  } else if (data.buttercupPresence === "mittel") {
+    offset += 4;
+    reasons.push("Mittlerer Hahnenfuß-Anteil (+4 Punkte)");
+  }
+
+  // Kräutervielfalt (senkt Risiko)
+  if (data.herbDiversity === "hoch") {
+    multiplier *= 0.9;
+    reasons.push("Hohe Kräutervielfalt (-10% Risiko)");
+  } else if (data.herbDiversity === "mittel") {
+    multiplier *= 0.95;
+    reasons.push("Mittlere Kräutervielfalt (-5% Risiko)");
   }
 
   return {

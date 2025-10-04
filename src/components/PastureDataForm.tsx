@@ -90,65 +90,11 @@ export function PastureDataForm({ data, onChange, onSave }: PastureDataFormProps
         </Alert>
       )}
 
-      {/* Grasbestand */}
+      {/* Wachstumsbedingungen */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">1. Grasbestand (20% Einfluss)</CardTitle>
-          <CardDescription>Grundlegende Eigenschaften der Weide</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="grassType">Dominante Grasart</Label>
-            <Select value={data.grassType} onValueChange={(v: any) => updateField("grassType", v)}>
-              <SelectTrigger id="grassType">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="weidelgras">Deutsches Weidelgras</SelectItem>
-                <SelectItem value="wiesenrispe">Wiesenrispe</SelectItem>
-                <SelectItem value="wiesenschwingel">Wiesenschwingel</SelectItem>
-                <SelectItem value="rotschwingel">Rotschwingel</SelectItem>
-                <SelectItem value="mix">Mix</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="cloverPercentage">Anteil Weißklee/Leguminosen</Label>
-            <Select value={data.cloverPercentage} onValueChange={(v: any) => updateField("cloverPercentage", v)}>
-              <SelectTrigger id="cloverPercentage">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0-10">0-10%</SelectItem>
-                <SelectItem value="10-30">10-30%</SelectItem>
-                <SelectItem value=">30">&gt;30%</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="pastureAge">Bestandsalter (Jahre)</Label>
-            <Select value={data.pastureAge} onValueChange={(v: any) => updateField("pastureAge", v)}>
-              <SelectTrigger id="pastureAge">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="<1">&lt;1 Jahr</SelectItem>
-                <SelectItem value="1-3">1-3 Jahre</SelectItem>
-                <SelectItem value="3-10">3-10 Jahre</SelectItem>
-                <SelectItem value=">10">&gt;10 Jahre</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Wachstumsstadium */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">2. Wachstumsstadium (25% Einfluss)</CardTitle>
-          <CardDescription>Aktueller Zustand der Gräser</CardDescription>
+          <CardTitle className="text-lg">1. Aktuelle Wachstumsbedingungen</CardTitle>
+          <CardDescription>Sich verändernde Parameter der Weide</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -183,232 +129,72 @@ export function PastureDataForm({ data, onChange, onSave }: PastureDataFormProps
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="floweringVisible">Blütenstände sichtbar?</Label>
-            <Select value={data.floweringVisible} onValueChange={(v: any) => updateField("floweringVisible", v)}>
-              <SelectTrigger id="floweringVisible">
+            <Label htmlFor="cloverPercentage">Anteil Weißklee/Leguminosen</Label>
+            <Select value={data.cloverPercentage} onValueChange={(v: any) => updateField("cloverPercentage", v)}>
+              <SelectTrigger id="cloverPercentage">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ja">Ja</SelectItem>
-                <SelectItem value="nein">Nein</SelectItem>
-                <SelectItem value="teilweise">Teilweise</SelectItem>
+                <SelectItem value="0-10">0-10%</SelectItem>
+                <SelectItem value="10-30">10-30%</SelectItem>
+                <SelectItem value=">30">&gt;30%</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </CardContent>
       </Card>
 
-      {/* Beweidungs-/Schnitthistorie */}
+      {/* Kräuter und Unkräuter */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">3. Beweidungs-/Schnitthistorie (30% Einfluss)</CardTitle>
-          <CardDescription>Nutzungsgeschichte der Weide - kritischster Faktor!</CardDescription>
+          <CardTitle className="text-lg">2. Kräuter & Unkräuter</CardTitle>
+          <CardDescription>Pflanzenvielfalt und unerwünschte Arten</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="daysSinceLastUse" className="font-semibold">Tage seit letzter Nutzung ⭐</Label>
-            <Select value={data.daysSinceLastUse} onValueChange={(v: any) => updateField("daysSinceLastUse", v)}>
-              <SelectTrigger id="daysSinceLastUse">
+            <Label htmlFor="buttercupPresence">Hahnenfuß-Anteil</Label>
+            <Select value={data.buttercupPresence} onValueChange={(v: any) => updateField("buttercupPresence", v)}>
+              <SelectTrigger id="buttercupPresence">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="0-3">0-3 Tage (sehr frisch)</SelectItem>
-                <SelectItem value="4-7">4-7 Tage (frisch)</SelectItem>
-                <SelectItem value="8-14">8-14 Tage (normal)</SelectItem>
-                <SelectItem value="15-21">15-21 Tage (älter)</SelectItem>
-                <SelectItem value="22-28">22-28 Tage (alt)</SelectItem>
-                <SelectItem value=">28">&gt;28 Tage (sehr alt)</SelectItem>
+                <SelectItem value="keiner">Keiner</SelectItem>
+                <SelectItem value="gering">Gering (&lt;5%)</SelectItem>
+                <SelectItem value="mittel">Mittel (5-15%)</SelectItem>
+                <SelectItem value="hoch">Hoch (&gt;15%)</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="stubbleHeight">Restaufwuchs nach letzter Nutzung (cm)</Label>
-            <Select value={data.stubbleHeight} onValueChange={(v: any) => updateField("stubbleHeight", v)}>
-              <SelectTrigger id="stubbleHeight">
+            <Label htmlFor="herbDiversity">Kräutervielfalt</Label>
+            <Select value={data.herbDiversity} onValueChange={(v: any) => updateField("herbDiversity", v)}>
+              <SelectTrigger id="herbDiversity">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="<3">&lt;3 cm (sehr kurz)</SelectItem>
-                <SelectItem value="3-5">3-5 cm (kurz)</SelectItem>
-                <SelectItem value="5-8">5-8 cm (normal)</SelectItem>
-                <SelectItem value=">8">&gt;8 cm (hoch)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="grazingIntensity">Beweidungsintensität</Label>
-            <Select value={data.grazingIntensity} onValueChange={(v: any) => updateField("grazingIntensity", v)}>
-              <SelectTrigger id="grazingIntensity">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="stark">Stark abgeweidet</SelectItem>
-                <SelectItem value="mittel">Mittel</SelectItem>
-                <SelectItem value="leicht">Leicht</SelectItem>
-                <SelectItem value="ungenutzt">Ungenutzt</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="grazingType">Weidesystem</Label>
-            <Select value={data.grazingType} onValueChange={(v: any) => updateField("grazingType", v)}>
-              <SelectTrigger id="grazingType">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="rotation">Rotationsweide</SelectItem>
-                <SelectItem value="stand">Standweide</SelectItem>
-                <SelectItem value="portion">Portionsweide</SelectItem>
+                <SelectItem value="keine">Keine/Sehr gering</SelectItem>
+                <SelectItem value="gering">Gering (1-3 Arten)</SelectItem>
+                <SelectItem value="mittel">Mittel (4-7 Arten)</SelectItem>
+                <SelectItem value="hoch">Hoch (&gt;7 Arten)</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </CardContent>
       </Card>
 
-      {/* Düngung */}
+      {/* Notizen */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">4. Düngung & Nährstoffe (15% Einfluss)</CardTitle>
-          <CardDescription>Nährstoffversorgung der Weide</CardDescription>
+          <CardTitle className="text-lg">3. Besondere Beobachtungen</CardTitle>
+          <CardDescription>Notizen zur aktuellen Weidesituation</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent>
           <div className="space-y-2">
-            <Label htmlFor="lastNFertilization">Letzte N-Düngung</Label>
-            <Select value={data.lastNFertilization} onValueChange={(v: any) => updateField("lastNFertilization", v)}>
-              <SelectTrigger id="lastNFertilization">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="<2w">&lt;2 Wochen</SelectItem>
-                <SelectItem value="2-4w">2-4 Wochen</SelectItem>
-                <SelectItem value="4-8w">4-8 Wochen</SelectItem>
-                <SelectItem value=">8w">&gt;8 Wochen</SelectItem>
-                <SelectItem value="keine">Keine</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="nAmount">N-Menge (kg/ha)</Label>
-            <Select value={data.nAmount} onValueChange={(v: any) => updateField("nAmount", v)}>
-              <SelectTrigger id="nAmount">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0">0 (keine Düngung)</SelectItem>
-                <SelectItem value="1-40">1-40 kg/ha</SelectItem>
-                <SelectItem value="40-80">40-80 kg/ha</SelectItem>
-                <SelectItem value="80-120">80-120 kg/ha</SelectItem>
-                <SelectItem value=">120">&gt;120 kg/ha</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="organicFertilization"
-              checked={data.organicFertilization}
-              onCheckedChange={(v) => updateField("organicFertilization", v)}
-            />
-            <Label htmlFor="organicFertilization">Organische Düngung (Mist/Gülle)</Label>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Bodenbedingungen */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">5. Bodenbedingungen (5% Einfluss)</CardTitle>
-          <CardDescription>Bodeneigenschaften und Feuchtigkeit</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="soilType">Bodentyp</Label>
-            <Select value={data.soilType} onValueChange={(v: any) => updateField("soilType", v)}>
-              <SelectTrigger id="soilType">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="sandig">Sandig</SelectItem>
-                <SelectItem value="lehmig">Lehmig</SelectItem>
-                <SelectItem value="tonig">Tonig</SelectItem>
-                <SelectItem value="torf">Torf</SelectItem>
-                <SelectItem value="mix">Mix</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="soilMoisture">Aktuelle Bodenfeuchte (visuell)</Label>
-            <Select value={data.soilMoisture} onValueChange={(v: any) => updateField("soilMoisture", v)}>
-              <SelectTrigger id="soilMoisture">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="trocken">Trocken/rissig</SelectItem>
-                <SelectItem value="normal">Normal</SelectItem>
-                <SelectItem value="feucht">Feucht</SelectItem>
-                <SelectItem value="nass">Nass</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="drainage">Drainage</Label>
-            <Select value={data.drainage} onValueChange={(v: any) => updateField("drainage", v)}>
-              <SelectTrigger id="drainage">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="gut">Gut</SelectItem>
-                <SelectItem value="mittel">Mittel</SelectItem>
-                <SelectItem value="schlecht">Schlecht</SelectItem>
-                <SelectItem value="staunaesse">Staunässe</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Stress-Indikatoren */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">6. Stress-Indikatoren (5% Einfluss)</CardTitle>
-          <CardDescription>Sichtbare Stresssymptome und Besonderheiten</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="visibleStress">Sichtbare Stresssymptome?</Label>
-            <Select value={data.visibleStress} onValueChange={(v: any) => updateField("visibleStress", v)}>
-              <SelectTrigger id="visibleStress">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="verfaerbung">Verfärbung</SelectItem>
-                <SelectItem value="welke">Welke</SelectItem>
-                <SelectItem value="flecken">Flecken</SelectItem>
-                <SelectItem value="keine">Keine</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="laminitisSensitive"
-              checked={data.laminitisSensitive}
-              onCheckedChange={(v) => updateField("laminitisSensitive", v)}
-            />
-            <Label htmlFor="laminitisSensitive">Pferde bereits hufrehe-empfindlich</Label>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="notes">Besondere Beobachtungen</Label>
+            <Label htmlFor="notes">Notizen (optional)</Label>
             <Textarea
               id="notes"
-              placeholder="Notizen zur aktuellen Weidesituation..."
+              placeholder="z.B. Witterung, besondere Ereignisse, Auffälligkeiten..."
               value={data.notes}
               onChange={(e) => updateField("notes", e.target.value)}
               rows={3}
