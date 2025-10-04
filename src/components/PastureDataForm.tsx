@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { PastureData, DEFAULT_PASTURE_DATA, isPastureDataValid, getDaysUntilExpiry } from "@/types/pasture";
+import { PastureData, DEFAULT_PASTURE_DATA, isPastureDataValid, getDaysUntilExpiry, PLANT_SPECIES, PlantSpecies } from "@/types/pasture";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Save, RotateCcw, Calendar, AlertTriangle, CheckCircle2, Sparkles } from "lucide-react";
@@ -25,19 +26,25 @@ export function PastureDataForm({ data, onChange, onSave }: PastureDataFormProps
   const applyAnalysis = () => {
     onChange({
       ...data,
-      herbDiversity: "hoch",
-      buttercupPresence: "gering",
-      cloverPercentage: "10-30",
-      notes: "Weideanalyse: Hohe Kräutervielfalt (Schafgarbe, Löwenzahn, Wegerich, Storchschnabel, etc.), geringer Hahnenfuß-Anteil, typische Fettwiese mit gutem Kleeanteil."
+      presentSpecies: ["schafgarbe", "loewenzahn", "weissklee", "rotklee", "spitzwegerich", "hahnenfuss", "wilde-moehre", "storchschnabel"],
+      notes: "Weideanalyse: Hohe Kräutervielfalt (Schafgarbe, Löwenzahn, Wegerich, Storchschnabel, Wilde Möhre), geringer Hahnenfuß-Anteil, typische Fettwiese mit gutem Kleeanteil (Weiß- und Rotklee)."
     });
     toast({
       title: "Analysewerte übernommen",
-      description: "Kräutervielfalt: Hoch, Hahnenfuß: Gering, Klee: 10-30%",
+      description: "8 Pflanzenarten erkannt und übernommen",
     });
   };
 
   const updateField = <K extends keyof PastureData>(field: K, value: PastureData[K]) => {
     onChange({ ...data, [field]: value });
+  };
+
+  const toggleSpecies = (speciesId: string) => {
+    const current = data.presentSpecies || [];
+    const updated = current.includes(speciesId)
+      ? current.filter(id => id !== speciesId)
+      : [...current, speciesId];
+    updateField("presentSpecies", updated);
   };
 
   const isValid = isPastureDataValid(data);
@@ -113,7 +120,7 @@ export function PastureDataForm({ data, onChange, onSave }: PastureDataFormProps
             <div className="flex-1 space-y-2">
               <h3 className="font-semibold">Letzte Weideanalyse anwenden</h3>
               <p className="text-sm text-muted-foreground">
-                Übernimmt die Werte aus Ihrer letzten Foto-Analyse: Hohe Kräutervielfalt, geringer Hahnenfuß, 10-30% Klee.
+                Übernimmt die erkannten Pflanzenarten aus Ihrer Foto-Analyse: Schafgarbe, Löwenzahn, Wegerich, Storchschnabel, Wilde Möhre, Weiß- und Rotklee, geringer Hahnenfuß.
               </p>
             </div>
             <Button onClick={applyAnalysis} variant="outline" size="sm" className="flex-shrink-0">
@@ -161,58 +168,101 @@ export function PastureDataForm({ data, onChange, onSave }: PastureDataFormProps
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="cloverPercentage">Anteil Weißklee/Leguminosen</Label>
-            <Select value={data.cloverPercentage} onValueChange={(v: any) => updateField("cloverPercentage", v)}>
-              <SelectTrigger id="cloverPercentage">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0-10">0-10%</SelectItem>
-                <SelectItem value="10-30">10-30%</SelectItem>
-                <SelectItem value=">30">&gt;30%</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </CardContent>
       </Card>
 
-      {/* Kräuter und Unkräuter */}
+      {/* Pflanzenarten Auswahl */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">2. Kräuter & Unkräuter</CardTitle>
-          <CardDescription>Pflanzenvielfalt und unerwünschte Arten</CardDescription>
+          <CardTitle className="text-lg">2. Vorhandene Pflanzenarten</CardTitle>
+          <CardDescription>Wählen Sie alle auf der Weide vorkommenden Arten aus</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="buttercupPresence">Hahnenfuß-Anteil</Label>
-            <Select value={data.buttercupPresence} onValueChange={(v: any) => updateField("buttercupPresence", v)}>
-              <SelectTrigger id="buttercupPresence">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="keiner">Keiner</SelectItem>
-                <SelectItem value="gering">Gering (&lt;5%)</SelectItem>
-                <SelectItem value="mittel">Mittel (5-15%)</SelectItem>
-                <SelectItem value="hoch">Hoch (&gt;15%)</SelectItem>
-              </SelectContent>
-            </Select>
+        <CardContent className="space-y-6">
+          {/* Kräuter */}
+          <div className="space-y-3">
+            <Label className="text-base font-semibold">Kräuter</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {PLANT_SPECIES.filter(s => s.category === "herb").map(species => (
+                <div key={species.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={species.id}
+                    checked={(data.presentSpecies || []).includes(species.id)}
+                    onCheckedChange={() => toggleSpecies(species.id)}
+                  />
+                  <label
+                    htmlFor={species.id}
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                  >
+                    {species.name}
+                    <span className="text-muted-foreground ml-1">
+                      (~{species.fructanContent}% Fruktan)
+                    </span>
+                  </label>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="herbDiversity">Kräutervielfalt</Label>
-            <Select value={data.herbDiversity} onValueChange={(v: any) => updateField("herbDiversity", v)}>
-              <SelectTrigger id="herbDiversity">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="keine">Keine/Sehr gering</SelectItem>
-                <SelectItem value="gering">Gering (1-3 Arten)</SelectItem>
-                <SelectItem value="mittel">Mittel (4-7 Arten)</SelectItem>
-                <SelectItem value="hoch">Hoch (&gt;7 Arten)</SelectItem>
-              </SelectContent>
-            </Select>
+          {/* Leguminosen */}
+          <div className="space-y-3">
+            <Label className="text-base font-semibold">Leguminosen (Klee-Arten)</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {PLANT_SPECIES.filter(s => s.category === "legume").map(species => (
+                <div key={species.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={species.id}
+                    checked={(data.presentSpecies || []).includes(species.id)}
+                    onCheckedChange={() => toggleSpecies(species.id)}
+                  />
+                  <label
+                    htmlFor={species.id}
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                  >
+                    {species.name}
+                    <span className="text-muted-foreground ml-1">
+                      (~{species.fructanContent}% Fruktan)
+                    </span>
+                  </label>
+                </div>
+              ))}
+            </div>
           </div>
+
+          {/* Unkräuter */}
+          <div className="space-y-3">
+            <Label className="text-base font-semibold">Unkräuter</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {PLANT_SPECIES.filter(s => s.category === "weed").map(species => (
+                <div key={species.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={species.id}
+                    checked={(data.presentSpecies || []).includes(species.id)}
+                    onCheckedChange={() => toggleSpecies(species.id)}
+                  />
+                  <label
+                    htmlFor={species.id}
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                  >
+                    {species.name}
+                    <span className="text-muted-foreground ml-1">
+                      (~{species.fructanContent}% Fruktan, +{((species.riskModifier - 1) * 100).toFixed(0)}% Risiko)
+                    </span>
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Zusammenfassung */}
+          {data.presentSpecies && data.presentSpecies.length > 0 && (
+            <Alert>
+              <CheckCircle2 className="h-4 w-4" />
+              <AlertTitle>Ausgewählte Arten: {data.presentSpecies.length}</AlertTitle>
+              <AlertDescription>
+                {PLANT_SPECIES.filter(s => data.presentSpecies.includes(s.id)).map(s => s.name).join(", ")}
+              </AlertDescription>
+            </Alert>
+          )}
         </CardContent>
       </Card>
 

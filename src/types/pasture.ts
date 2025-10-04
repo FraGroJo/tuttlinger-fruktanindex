@@ -2,6 +2,41 @@
  * Weidestand-Parameter für präzisere Fruktan-Berechnung
  */
 
+/**
+ * Spezifische Pflanzenart mit Fruktangehalt und Einfluss
+ */
+export interface PlantSpecies {
+  id: string;
+  name: string;
+  category: "herb" | "legume" | "weed" | "grass";
+  fructanContent: number; // % durchschnittlicher Fruktangehalt
+  riskModifier: number; // Multiplikator für Risikoberechnung (0.5 = -50%, 1.5 = +50%)
+}
+
+/**
+ * Verfügbare Pflanzenarten zur Auswahl
+ */
+export const PLANT_SPECIES: PlantSpecies[] = [
+  // Kräuter (niedrige Fruktanwerte)
+  { id: "schafgarbe", name: "Schafgarbe", category: "herb", fructanContent: 2.5, riskModifier: 0.85 },
+  { id: "spitzwegerich", name: "Spitzwegerich", category: "herb", fructanContent: 1.5, riskModifier: 0.80 },
+  { id: "breitwegerich", name: "Breitwegerich", category: "herb", fructanContent: 1.8, riskModifier: 0.82 },
+  { id: "loewenzahn", name: "Löwenzahn", category: "herb", fructanContent: 6.0, riskModifier: 0.95 },
+  { id: "storchschnabel", name: "Storchschnabel", category: "herb", fructanContent: 0.8, riskModifier: 0.75 },
+  { id: "wilde-moehre", name: "Wilde Möhre", category: "herb", fructanContent: 1.2, riskModifier: 0.78 },
+  { id: "wiesenkerbel", name: "Wiesenkerbel", category: "herb", fructanContent: 1.5, riskModifier: 0.80 },
+  
+  // Leguminosen (niedrige Fruktanwerte)
+  { id: "weissklee", name: "Weißklee", category: "legume", fructanContent: 0.5, riskModifier: 0.70 },
+  { id: "rotklee", name: "Rotklee", category: "legume", fructanContent: 0.8, riskModifier: 0.73 },
+  { id: "hornklee", name: "Hornklee", category: "legume", fructanContent: 0.6, riskModifier: 0.71 },
+  
+  // Unkräuter (teils problematisch)
+  { id: "hahnenfuss", name: "Hahnenfuß", category: "weed", fructanContent: 3.0, riskModifier: 1.15 },
+  { id: "ampfer", name: "Ampfer", category: "weed", fructanContent: 2.0, riskModifier: 1.08 },
+  { id: "disteln", name: "Disteln", category: "weed", fructanContent: 2.5, riskModifier: 1.10 },
+];
+
 export interface PastureData {
   // Metadata
   savedAt?: string; // ISO timestamp when data was saved
@@ -9,11 +44,9 @@ export interface PastureData {
   // Wachstumsbedingungen (sich verändernde Parameter)
   grassHeight: "<5" | "5-10" | "10-15" | "15-20" | ">20"; // cm
   growthPhase: "ruhend" | "langsam" | "aktiv" | "sehr-schnell";
-  cloverPercentage: "0-10" | "10-30" | ">30";
   
-  // Kräuter & Unkräuter
-  buttercupPresence: "keiner" | "gering" | "mittel" | "hoch";
-  herbDiversity: "keine" | "gering" | "mittel" | "hoch";
+  // Spezifische Pflanzenarten (neue detaillierte Erfassung)
+  presentSpecies: string[]; // Array von PlantSpecies IDs
   
   // Notizen
   notes: string;
@@ -40,9 +73,7 @@ export const DEFAULT_PASTURE_DATA: PastureData = {
   savedAt: undefined,
   grassHeight: "10-15",
   growthPhase: "aktiv",
-  cloverPercentage: "0-10",
-  buttercupPresence: "keiner",
-  herbDiversity: "gering",
+  presentSpecies: [],
   notes: "",
   // Defaults für Berechnungsparameter
   grassType: "mix",
@@ -100,6 +131,66 @@ export function calculatePastureAdjustments(data: PastureData): {
   let offset = 0;
   const reasons: string[] = [];
 
+  // === NEUE: Spezifische Pflanzenarten-Berechnung ===
+  if (data.presentSpecies && data.presentSpecies.length > 0) {
+    const speciesData = data.presentSpecies
+      .map(id => PLANT_SPECIES.find(s => s.id === id))
+      .filter((s): s is PlantSpecies => s !== undefined);
+
+    // Berechne durchschnittlichen Risikomodifikator basierend auf Pflanzenvielfalt
+    const avgRiskModifier = speciesData.reduce((sum, s) => sum + s.riskModifier, 0) / speciesData.length;
+    
+    // Kategorisiere Pflanzen
+    const herbs = speciesData.filter(s => s.category === "herb");
+    const legumes = speciesData.filter(s => s.category === "legume");
+    const weeds = speciesData.filter(s => s.category === "weed");
+
+    // Kräuter-Einfluss (je mehr, desto besser)
+    if (herbs.length >= 5) {
+      multiplier *= 0.85;
+      reasons.push(`Hohe Kräutervielfalt (${herbs.length} Arten: ${herbs.map(h => h.name).join(", ")}) - Reduktion -15%`);
+    } else if (herbs.length >= 3) {
+      multiplier *= 0.92;
+      reasons.push(`Mittlere Kräutervielfalt (${herbs.length} Arten: ${herbs.map(h => h.name).join(", ")}) - Reduktion -8%`);
+    } else if (herbs.length > 0) {
+      multiplier *= 0.97;
+      reasons.push(`Geringe Kräutervielfalt (${herbs.length} Arten: ${herbs.map(h => h.name).join(", ")}) - Reduktion -3%`);
+    }
+
+    // Leguminosen-Einfluss
+    if (legumes.length >= 2) {
+      multiplier *= 0.85;
+      offset -= 3;
+      reasons.push(`Mehrere Leguminosen (${legumes.map(l => l.name).join(", ")}) - Reduktion -15%, -3 Punkte`);
+    } else if (legumes.length === 1) {
+      multiplier *= 0.92;
+      offset -= 2;
+      reasons.push(`${legumes[0].name} vorhanden - Reduktion -8%, -2 Punkte`);
+    }
+
+    // Unkräuter-Einfluss (negativ)
+    if (weeds.length > 0) {
+      const weedEffect = weeds.reduce((sum, w) => sum + (w.riskModifier - 1.0), 0) * 100;
+      const weedOffset = weeds.length * 3;
+      multiplier *= (1 + weedEffect / 100);
+      offset += weedOffset;
+      reasons.push(`Unkräuter erkannt (${weeds.map(w => w.name).join(", ")}) - Erhöhung +${weedEffect.toFixed(0)}%, +${weedOffset} Punkte`);
+    }
+
+    // Spezifische Pflanzen mit besonderen Eigenschaften
+    const loewenzahn = speciesData.find(s => s.id === "loewenzahn");
+    if (loewenzahn) {
+      reasons.push("Löwenzahn: Inulin-basiert (anders als Gras-Fruktane)");
+    }
+
+    const schafgarbe = speciesData.find(s => s.id === "schafgarbe");
+    if (schafgarbe) {
+      reasons.push("Schafgarbe: Sehr niedriger Fruktangehalt (~2,5%)");
+    }
+  }
+
+  // === BESTEHENDE BERECHNUNGEN ===
+
   // Grasarten-Einfluss (±15%)
   const grassFactors = {
     weidelgras: 1.15, // höchste Fruktanakkumulation
@@ -113,15 +204,6 @@ export function calculatePastureAdjustments(data: PastureData): {
     reasons.push("Deutsches Weidelgras (+15% Risiko)");
   } else if (data.grassType === "rotschwingel") {
     reasons.push("Rotschwingel (-10% Risiko)");
-  }
-
-  // Kleeanteil senkt Fruktanrisiko
-  if (data.cloverPercentage === ">30") {
-    multiplier *= 0.85;
-    reasons.push("Hoher Kleeanteil (-15% Risiko)");
-  } else if (data.cloverPercentage === "10-30") {
-    multiplier *= 0.92;
-    reasons.push("Moderater Kleeanteil (-8% Risiko)");
   }
 
   // Grashöhe - kurzes Gras = höheres Risiko
@@ -192,24 +274,6 @@ export function calculatePastureAdjustments(data: PastureData): {
   if (data.floweringVisible === "ja") {
     offset += 5;
     reasons.push("Blütenstände sichtbar (+5 Punkte)");
-  }
-
-  // Hahnenfuß-Anteil (erhöht Risiko)
-  if (data.buttercupPresence === "hoch") {
-    offset += 8;
-    reasons.push("Hoher Hahnenfuß-Anteil (+8 Punkte)");
-  } else if (data.buttercupPresence === "mittel") {
-    offset += 4;
-    reasons.push("Mittlerer Hahnenfuß-Anteil (+4 Punkte)");
-  }
-
-  // Kräutervielfalt (senkt Risiko)
-  if (data.herbDiversity === "hoch") {
-    multiplier *= 0.9;
-    reasons.push("Hohe Kräutervielfalt (-10% Risiko)");
-  } else if (data.herbDiversity === "mittel") {
-    multiplier *= 0.95;
-    reasons.push("Mittlere Kräutervielfalt (-5% Risiko)");
   }
 
   return {
