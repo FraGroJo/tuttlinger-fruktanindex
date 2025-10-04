@@ -78,7 +78,8 @@ const CustomTooltip: React.FC<any> = ({ active, payload, label }) => {
 export function TrendChart({ data, confidence = "normal", className = "" }: TrendChartProps) {
   const yDomain: [number, number] = [0, 100];
   const timeZone = "Europe/Berlin";
-  const now = new Date().toISOString();
+  const now = new Date();
+  const nowTimestamp = now.toISOString();
 
   return (
     <div className={`rounded-2xl border border-border bg-card p-6 shadow-lg ${className}`}>
@@ -136,18 +137,20 @@ export function TrendChart({ data, confidence = "normal", className = "" }: Tren
             <ReferenceLine y={EMS.GREEN_MAX} stroke="#16a34a" strokeDasharray="4 4" strokeWidth={1.5} opacity={0.6} />
             <ReferenceLine y={EMS.YELLOW_MAX} stroke="#f59e0b" strokeDasharray="4 4" strokeWidth={1.5} opacity={0.6} />
             
-            {/* Aktuelle Zeit - vertikale gestrichelte Linie von oben bis unten */}
+            {/* Aktuelle Zeit - vertikale gestrichelte Linie */}
             <ReferenceLine 
-              x={now} 
+              x={nowTimestamp} 
               stroke="#3b82f6" 
-              strokeWidth={3} 
-              strokeDasharray="6 4"
+              strokeWidth={2.5} 
+              strokeDasharray="5 5"
+              isFront={true}
               label={{ 
                 value: '▼ JETZT', 
                 position: 'top', 
                 fill: '#3b82f6', 
-                fontSize: 12, 
-                fontWeight: 700
+                fontSize: 13, 
+                fontWeight: 'bold',
+                offset: 8
               }} 
             />
             
