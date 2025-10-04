@@ -102,27 +102,6 @@ export function Header({ location, onLocationChange, fruktanNow }: HeaderProps) 
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
             {/* Info-Modal */}
             <InfoModal emsMode={true} />
-            
-            {/* Fruktan Now Display */}
-            {fruktanNow && (
-              <div className="flex items-center gap-3 bg-muted/50 px-4 py-3 rounded-lg border">
-                <AlertCircle className="w-5 h-5 text-muted-foreground" />
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">Fruktan (jetzt, EMS):</span>
-                  <span className={`text-sm font-bold ${
-                    fruktanNow.level === "safe" ? "text-risk-safe" :
-                    fruktanNow.level === "moderate" ? "text-risk-moderate" :
-                    "text-risk-high"
-                  }`}>
-                    {fruktanNow.score} ({
-                      fruktanNow.level === "safe" ? "Sicher" :
-                      fruktanNow.level === "moderate" ? "Erhöht" :
-                      "Hoch"
-                    })
-                  </span>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>

@@ -95,7 +95,12 @@ const Index = () => {
         {/* Current Conditions */}
         {data.current && (
           <section className="mb-8 animate-fade-in">
-            <CurrentConditions current={data.current} source={data.source} flags={data.flags} />
+            <CurrentConditions 
+              current={data.current} 
+              source={data.source} 
+              flags={data.flags}
+              fruktanNow={data.fruktanNow}
+            />
           </section>
         )}
 

@@ -1,15 +1,19 @@
 import { type CurrentConditions, type SourceMetadata } from "@/types/fruktan";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Cloud, Droplets, Wind, Thermometer, Database } from "lucide-react";
+import { Cloud, Droplets, Wind, Thermometer, TrendingUp } from "lucide-react";
 
 interface CurrentConditionsProps {
   current: CurrentConditions;
   source: SourceMetadata;
   flags?: string[];
+  fruktanNow?: {
+    score: number;
+    level: "safe" | "moderate" | "high";
+  };
 }
 
-export function CurrentConditions({ current, source, flags = [] }: CurrentConditionsProps) {
+export function CurrentConditions({ current, source, flags = [], fruktanNow }: CurrentConditionsProps) {
   const hasMismatch = flags.includes("current_mismatch");
   
   const formatDateTime = (isoString: string) => {
@@ -71,14 +75,46 @@ export function CurrentConditions({ current, source, flags = [] }: CurrentCondit
             )}
           </div>
 
-          {/* Source Metadata */}
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground bg-muted/30 px-4 py-2 rounded-full border">
-            <Database className="h-4 w-4" />
-            <span>Quelle: {source.provider} • Stand: {formatDateTime(source.data_timestamp_local)} ({source.model})</span>
-          </div>
-
-          {/* Weather Metrics Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-6">
+          {/* Weather Metrics Grid - 5 Karten inkl. Fruktan */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 pt-6">
+            {/* Fruktan-Wert - Prominente Platzierung */}
+            {fruktanNow && (
+              <div className={`group relative flex flex-col items-center gap-3 p-5 rounded-2xl border-2 transition-all duration-300 hover:shadow-xl hover:scale-105 ${
+                fruktanNow.level === "safe" 
+                  ? "bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/30 hover:border-green-500/50 hover:shadow-green-500/20" 
+                  : fruktanNow.level === "moderate"
+                  ? "bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 border-yellow-500/30 hover:border-yellow-500/50 hover:shadow-yellow-500/20"
+                  : "bg-gradient-to-br from-red-500/10 to-red-600/5 border-red-500/30 hover:border-red-500/50 hover:shadow-red-500/20"
+              }`}>
+                <div className={`absolute top-0 right-0 w-20 h-20 rounded-full blur-2xl transition-all ${
+                  fruktanNow.level === "safe" 
+                    ? "bg-green-500/5 group-hover:bg-green-500/10" 
+                    : fruktanNow.level === "moderate"
+                    ? "bg-yellow-500/5 group-hover:bg-yellow-500/10"
+                    : "bg-red-500/5 group-hover:bg-red-500/10"
+                }`} />
+                <TrendingUp className={`h-7 w-7 relative z-10 ${
+                  fruktanNow.level === "safe" 
+                    ? "text-green-500" 
+                    : fruktanNow.level === "moderate"
+                    ? "text-yellow-500"
+                    : "text-red-500"
+                }`} />
+                <span className="text-3xl font-bold text-foreground relative z-10">
+                  {fruktanNow.score}
+                </span>
+                <span className={`text-xs font-bold uppercase tracking-wider relative z-10 ${
+                  fruktanNow.level === "safe" 
+                    ? "text-green-600" 
+                    : fruktanNow.level === "moderate"
+                    ? "text-yellow-600"
+                    : "text-red-600"
+                }`}>
+                  {fruktanNow.level === "safe" ? "Sicher" : fruktanNow.level === "moderate" ? "Erhöht" : "Hoch"}
+                </span>
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider relative z-10">Fruktan</span>
+              </div>
+            )}
             {/* Luftfeuchtigkeit */}
             <div className="group relative flex flex-col items-center gap-3 p-5 rounded-2xl bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-2 border-blue-500/20 hover:border-blue-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10 hover:scale-105">
               <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-all" />
