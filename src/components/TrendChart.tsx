@@ -106,19 +106,20 @@ export function TrendChart({ data, confidence = "normal", className = "" }: Tren
             <ReferenceLine y={EMS.GREEN_MAX} stroke="#16a34a" strokeDasharray="4 4" strokeWidth={1.5} opacity={0.6} />
             <ReferenceLine y={EMS.YELLOW_MAX} stroke="#f59e0b" strokeDasharray="4 4" strokeWidth={1.5} opacity={0.6} />
             
-            {/* Aktuelle Zeit Markierung - deutlich sichtbar */}
+            {/* Aktuelle Zeit - vertikale gestrichelte Linie */}
             <ReferenceLine 
               x={now} 
               stroke="#3b82f6" 
               strokeWidth={3} 
-              opacity={0.9}
+              strokeDasharray="8 4"
+              opacity={0.85}
               label={{ 
-                value: '▼ JETZT', 
+                value: 'JETZT', 
                 position: 'top', 
                 fill: '#3b82f6', 
                 fontSize: 13, 
                 fontWeight: 700,
-                offset: 10
+                offset: 5
               }} 
             />
 
