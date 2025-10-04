@@ -136,22 +136,22 @@ export function TrendChart({ data, confidence = "normal", className = "", nowTs,
   }, [nowX]);
 
   return (
-    <div className={`rounded-2xl border border-border bg-card p-6 shadow-lg ${className}`}>
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-card-foreground">Trend-Verlauf (EMS)</h3>
-        <div className="flex items-center gap-2">
-          <div className="text-sm text-muted-foreground">Fruktan-Risiko (EMS) • stündlich</div>
+    <div className={`rounded-xl sm:rounded-2xl border border-border bg-card p-3 sm:p-4 md:p-6 shadow-lg ${className}`}>
+      <div className="mb-3 sm:mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <h3 className="text-base sm:text-lg font-semibold text-card-foreground">Trend-Verlauf (EMS)</h3>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="text-xs sm:text-sm text-muted-foreground">Fruktan-Risiko (EMS) • stündlich</div>
           {confidence === "low" && (
-            <span className="text-xs px-2 py-1 rounded bg-warning/10 text-warning border border-warning/30">
+            <span className="text-xs px-2 py-0.5 sm:py-1 rounded bg-warning/10 text-warning border border-warning/30">
               Geringe Konfidenz
             </span>
           )}
         </div>
       </div>
 
-      <div role="img" aria-label="Trend des Fruktan-Scores über Zeit (EMS farbcodiert)">
-        <ResponsiveContainer width="100%" height={380}>
-          <ComposedChart data={data} margin={{ top: 10, right: 16, bottom: 8, left: 0 }}>
+      <div role="img" aria-label="Trend des Fruktan-Scores über Zeit (EMS farbcodiert)" className="w-full overflow-x-auto">
+        <ResponsiveContainer width="100%" height={280} className="sm:!h-[320px] md:!h-[380px]">
+          <ComposedChart data={data} margin={{ top: 10, right: 8, bottom: 8, left: -10 }} className="sm:!mr-4 md:!mr-4">
             <defs>
               <linearGradient id="nowLineGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.8" />
@@ -170,19 +170,32 @@ export function TrendChart({ data, confidence = "normal", className = "", nowTs,
               dataKey="timestamp"
               tickFormatter={(ts) => fmtAxisTime(ts, timeZone)}
               stroke="#64748b"
-              fontSize={12}
+              fontSize={10}
+              className="sm:!text-xs"
               tickLine={false}
               tick={{ fill: '#64748b' }}
+              minTickGap={20}
+              angle={-45}
+              textAnchor="end"
+              height={60}
             />
             
             <YAxis
               domain={yDomain}
               stroke="#64748b"
-              fontSize={12}
+              fontSize={10}
+              className="sm:!text-xs"
               tickLine={false}
               tickFormatter={fmtNumber}
               tick={{ fill: '#64748b' }}
-              label={{ value: 'Fruktan-Score', angle: -90, position: 'insideLeft', style: { fontSize: 13, fill: '#475569', fontWeight: 500 } }}
+              width={35}
+              label={{ 
+                value: 'Score', 
+                angle: -90, 
+                position: 'insideLeft', 
+                style: { fontSize: 11, fill: '#475569', fontWeight: 500 },
+                className: 'sm:!text-xs'
+              }}
             />
             
             <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#94a3b8', strokeWidth: 1, strokeDasharray: '5 5' }} />
@@ -213,7 +226,8 @@ export function TrendChart({ data, confidence = "normal", className = "", nowTs,
                   value: nowLabel,
                   position: "top",
                   fill: "#334155",
-                  fontSize: 12,
+                  fontSize: 10,
+                  className: "sm:!text-xs"
                 }}
               />
             )}
@@ -222,9 +236,9 @@ export function TrendChart({ data, confidence = "normal", className = "", nowTs,
               type="monotone"
               dataKey="score"
               stroke="#0f172a"
-              strokeWidth={2.5}
+              strokeWidth={2}
               dot={RiskDotWithBadge}
-              activeDot={{ r: 6, stroke: '#0f172a', strokeWidth: 2, fill: '#fff' }}
+              activeDot={{ r: 5, stroke: '#0f172a', strokeWidth: 2, fill: '#fff' }}
               isAnimationActive={false}
             />
           </ComposedChart>
@@ -232,21 +246,21 @@ export function TrendChart({ data, confidence = "normal", className = "", nowTs,
       </div>
 
       {/* Legende */}
-      <div className="mt-5 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-center gap-6 text-sm text-slate-600">
-        <div className="flex items-center gap-2">
-          <span className="inline-block h-3 w-3 rounded-full bg-[#16a34a] shadow-sm" />
+      <div className="mt-3 sm:mt-4 md:mt-5 pt-3 sm:pt-4 border-t border-slate-100 grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center sm:justify-center gap-3 sm:gap-4 md:gap-6 text-xs sm:text-sm text-slate-600">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <span className="inline-block h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full bg-[#16a34a] shadow-sm flex-shrink-0" />
           <span className="font-medium">Sicher (0–29)</span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="inline-block h-3 w-3 rounded-full bg-[#f59e0b] shadow-sm" />
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <span className="inline-block h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full bg-[#f59e0b] shadow-sm flex-shrink-0" />
           <span className="font-medium">Erhöht (30–59)</span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="inline-block h-3 w-3 rounded-full bg-[#ef4444] shadow-sm" />
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <span className="inline-block h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full bg-[#ef4444] shadow-sm flex-shrink-0" />
           <span className="font-medium">Hoch (60–100)</span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-slate-500 text-base">✽</span>
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <span className="text-slate-500 text-sm sm:text-base">✽</span>
           <span className="font-medium">Frost (≤0°C)</span>
         </div>
       </div>
