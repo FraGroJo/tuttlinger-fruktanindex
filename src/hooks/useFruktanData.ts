@@ -114,7 +114,7 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
     current: "temperature_2m,relative_humidity_2m,cloud_cover,wind_speed_10m,precipitation",
     daily: "temperature_2m_max,temperature_2m_min",
     past_days: "3",
-    forecast_days: "4",
+    forecast_days: "7",
   });
 
   const url = `https://api.open-meteo.com/v1/forecast?${params}`;
@@ -196,6 +196,18 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
   const dayThreeDate = new Date(todayDate + 'T12:00:00+02:00');
   dayThreeDate.setDate(dayThreeDate.getDate() + 3);
   const dayThreeDateStr = dayThreeDate.toISOString().split('T')[0];
+  
+  const dayFourDate = new Date(todayDate + 'T12:00:00+02:00');
+  dayFourDate.setDate(dayFourDate.getDate() + 4);
+  const dayFourDateStr = dayFourDate.toISOString().split('T')[0];
+  
+  const dayFiveDate = new Date(todayDate + 'T12:00:00+02:00');
+  dayFiveDate.setDate(dayFiveDate.getDate() + 5);
+  const dayFiveDateStr = dayFiveDate.toISOString().split('T')[0];
+  
+  const daySixDate = new Date(todayDate + 'T12:00:00+02:00');
+  daySixDate.setDate(daySixDate.getDate() + 6);
+  const daySixDateStr = daySixDate.toISOString().split('T')[0];
   
   // Generiere Day-Matrix für einen Tag (strict local date string matching)
   const generateDayMatrix = (targetDateStr: string): DayMatrix => {
@@ -423,11 +435,14 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
     return result as DayMatrix;
   };
   
-  // Generiere Matrizen für 4 Tage (strict local date strings)
+  // Generiere Matrizen für 7 Tage (strict local date strings)
   const today = generateDayMatrix(todayDate);
   const tomorrow = generateDayMatrix(tomorrowDateStr);
   const dayAfterTomorrow = generateDayMatrix(dayAfterDateStr);
   const dayThree = generateDayMatrix(dayThreeDateStr);
+  const dayFour = generateDayMatrix(dayFourDateStr);
+  const dayFive = generateDayMatrix(dayFiveDateStr);
+  const daySix = generateDayMatrix(daySixDateStr);
   
   // Berechne Parity-Hashes
   const windowsData = {
@@ -435,6 +450,9 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
     tomorrow: { morning: tomorrow.morning, noon: tomorrow.noon, evening: tomorrow.evening },
     dayAfterTomorrow: { morning: dayAfterTomorrow.morning, noon: dayAfterTomorrow.noon, evening: dayAfterTomorrow.evening },
     dayThree: { morning: dayThree.morning, noon: dayThree.noon, evening: dayThree.evening },
+    dayFour: { morning: dayFour.morning, noon: dayFour.noon, evening: dayFour.evening },
+    dayFive: { morning: dayFive.morning, noon: dayFive.noon, evening: dayFive.evening },
+    daySix: { morning: daySix.morning, noon: daySix.noon, evening: daySix.evening },
   };
   
   const windowsHash = await sha256(windowsData);
@@ -477,6 +495,9 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
     tomorrow,
     dayAfterTomorrow,
     dayThree,
+    dayFour,
+    dayFive,
+    daySix,
     generatedAt: now.toISOString(),
     emsMode,
     metadata: {
@@ -486,7 +507,7 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
       timezone: "Europe/Berlin",
     },
     flags: globalFlags,
-    confidence: globalFlags.length > 0 ? "low" : "normal",
+    confidence: today.morning.confidence === "low" || today.noon.confidence === "low" || today.evening.confidence === "low" ? "low" : "normal",
   };
 }
 

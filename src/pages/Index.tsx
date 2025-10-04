@@ -69,7 +69,7 @@ const Index = () => {
     if (!data) return;
     try {
       exportToCSV(
-        [data.today, data.tomorrow, data.dayAfterTomorrow, data.dayThree],
+        [data.today, data.tomorrow, data.dayAfterTomorrow, data.dayThree, data.dayFour, data.dayFive, data.daySix],
         location.name
       );
       toast({
@@ -89,7 +89,7 @@ const Index = () => {
     if (!data) return;
     try {
       exportToPDF(
-        [data.today, data.tomorrow, data.dayAfterTomorrow, data.dayThree],
+        [data.today, data.tomorrow, data.dayAfterTomorrow, data.dayThree, data.dayFour, data.dayFive, data.daySix],
         location.name,
         true
       );
@@ -157,7 +157,7 @@ const Index = () => {
 
   const getDayDataByDate = (date: string) => {
     if (!data) return null;
-    const days = [data.today, data.tomorrow, data.dayAfterTomorrow, data.dayThree];
+    const days = [data.today, data.tomorrow, data.dayAfterTomorrow, data.dayThree, data.dayFour, data.dayFive, data.daySix];
     return days.find((d) => d.date === date);
   };
 
@@ -286,6 +286,9 @@ const Index = () => {
                 tomorrow={data.tomorrow}
                 dayAfterTomorrow={data.dayAfterTomorrow}
                 dayThree={data.dayThree}
+                dayFour={data.dayFour}
+                dayFive={data.dayFive}
+                daySix={data.daySix}
               />
             </section>
 
@@ -355,6 +358,15 @@ const Index = () => {
                         </option>
                         <option value={data.dayThree.date}>
                           Tag 3 ({new Date(data.dayThree.date).toLocaleDateString("de-DE")})
+                        </option>
+                        <option value={data.dayFour.date}>
+                          Tag 4 ({new Date(data.dayFour.date).toLocaleDateString("de-DE")})
+                        </option>
+                        <option value={data.dayFive.date}>
+                          Tag 5 ({new Date(data.dayFive.date).toLocaleDateString("de-DE")})
+                        </option>
+                        <option value={data.daySix.date}>
+                          Tag 6 ({new Date(data.daySix.date).toLocaleDateString("de-DE")})
                         </option>
                       </select>
                     </div>

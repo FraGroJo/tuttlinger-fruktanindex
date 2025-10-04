@@ -1,6 +1,6 @@
 /**
  * MatrixGrid Komponente
- * Responsive Grid mit Swipe-Carousel für mobile
+ * Responsive Grid mit Swipe-Carousel für mobile (7 Tage)
  */
 
 import { motion } from "framer-motion";
@@ -15,11 +15,22 @@ interface MatrixGridProps {
   tomorrow: DayMatrix;
   dayAfterTomorrow: DayMatrix;
   dayThree: DayMatrix;
+  dayFour: DayMatrix;
+  dayFive: DayMatrix;
+  daySix: DayMatrix;
 }
 
-export function MatrixGrid({ today, tomorrow, dayAfterTomorrow, dayThree }: MatrixGridProps) {
+export function MatrixGrid({ 
+  today, 
+  tomorrow, 
+  dayAfterTomorrow, 
+  dayThree,
+  dayFour,
+  dayFive,
+  daySix
+}: MatrixGridProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const days = [today, tomorrow, dayAfterTomorrow, dayThree];
+  const days = [today, tomorrow, dayAfterTomorrow, dayThree, dayFour, dayFive, daySix];
 
   const handlePrev = () => {
     setCurrentIndex((prev) => (prev > 0 ? prev - 1 : days.length - 1));
@@ -31,8 +42,8 @@ export function MatrixGrid({ today, tomorrow, dayAfterTomorrow, dayThree }: Matr
 
   return (
     <>
-      {/* Desktop: Grid */}
-      <div className="hidden lg:grid lg:grid-cols-2 gap-6">
+      {/* Desktop: Grid (max 3 pro Zeile) */}
+      <div className="hidden lg:grid lg:grid-cols-3 gap-6">
         {days.map((day, idx) => (
           <DayCard key={day.date} matrix={day} />
         ))}

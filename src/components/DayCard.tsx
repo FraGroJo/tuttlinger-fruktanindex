@@ -1,6 +1,6 @@
 /**
  * DayCard Komponente (kompakte UX-Version)
- * Zeigt 3 Zeitfenster nebeneinander mit Icons, Temperatur und Score
+ * Zeigt 3 Zeitfenster nebeneinander mit Icons, Temperatur, Score und sichtbaren Min/Median/Max Werten
  */
 
 import { motion } from "framer-motion";
@@ -40,7 +40,7 @@ export function DayCard({ matrix, className = "" }: DayCardProps) {
     month: "2-digit",
   });
 
-  // Heute/Morgen/Übermorgen/Tag 3 Label
+  // Heute/Morgen/Übermorgen/Tag 3/etc Label
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const diffDays = Math.round((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
@@ -49,7 +49,7 @@ export function DayCard({ matrix, className = "" }: DayCardProps) {
   if (diffDays === 0) dayLabel = "Heute";
   else if (diffDays === 1) dayLabel = "Morgen";
   else if (diffDays === 2) dayLabel = "Übermorgen";
-  else if (diffDays === 3) dayLabel = "Tag 3";
+  else if (diffDays >= 3) dayLabel = `Tag ${diffDays}`;
 
   return (
     <motion.div
@@ -94,10 +94,15 @@ export function DayCard({ matrix, className = "" }: DayCardProps) {
                         <RiskBadge level={data.level} score={data.score} className="scale-90" />
                       </div>
 
-                      {/* Temperatur-Bar (kompakt) */}
+                      {/* Temperatur-Bar mit Min/Median/Max Werten */}
                       {data.temperature_spectrum && (
-                        <TempBarMini spectrum={data.temperature_spectrum} />
+                        <TempBarWithLabels spectrum={data.temperature_spectrum} />
                       )}
+                      
+                      {/* Reason Text */}
+                      <p className="text-xs text-muted-foreground mt-2 line-clamp-1">
+                        {data.reason.split('\n')[0]}
+                      </p>
                     </div>
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs">
@@ -120,9 +125,9 @@ export function DayCard({ matrix, className = "" }: DayCardProps) {
 }
 
 /**
- * Mini Temperatur-Bar (ohne Labels)
+ * Temperatur-Bar mit sichtbaren Min/Median/Max Werten
  */
-function TempBarMini({ spectrum }: { spectrum: TemperatureSpectrum }) {
+function TempBarWithLabels({ spectrum }: { spectrum: TemperatureSpectrum }) {
   const min = spectrum.min ?? 0;
   const max = spectrum.max ?? 0;
   const median = spectrum.median ?? ((min + max) / 2);
@@ -131,12 +136,22 @@ function TempBarMini({ spectrum }: { spectrum: TemperatureSpectrum }) {
   const medianPercent = range > 0 ? ((median - min) / range) * 100 : 50;
   
   return (
-    <div className="relative h-2 bg-gradient-to-r from-blue-400/20 via-yellow-400/20 to-red-400/20 rounded-full overflow-hidden">
-      {/* Median Marker */}
-      <div 
-        className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2 h-2 bg-foreground rounded-full border border-background"
-        style={{ left: `${medianPercent}%` }}
-      />
+    <div className="space-y-1">
+      {/* Bar */}
+      <div className="relative h-2 bg-gradient-to-r from-blue-400/20 via-yellow-400/20 to-red-400/20 rounded-full overflow-hidden">
+        {/* Median Marker */}
+        <div 
+          className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2 h-2 bg-foreground rounded-full border border-background"
+          style={{ left: `${medianPercent}%` }}
+        />
+      </div>
+      
+      {/* Labels */}
+      <div className="flex justify-between text-[10px] text-muted-foreground">
+        <span>{min.toFixed(1)}°</span>
+        <span className="font-medium">{median.toFixed(1)}°</span>
+        <span>{max.toFixed(1)}°</span>
+      </div>
     </div>
   );
 }
