@@ -147,7 +147,12 @@ const Index = () => {
 
         {/* Trend-Chart */}
         <section className="mb-8">
-          <TrendChart data={trendData} confidence={data.confidence} />
+          <TrendChart 
+            data={trendData} 
+            confidence={data.confidence}
+            nowTs={data.source.data_timestamp_local}
+            nowScore={data.fruktanNow?.score}
+          />
         </section>
       </main>
     </div>

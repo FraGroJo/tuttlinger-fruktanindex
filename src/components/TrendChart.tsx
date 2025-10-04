@@ -10,6 +10,8 @@ interface TrendChartProps {
   data: TrendDataPoint[];
   confidence?: "normal" | "low";
   className?: string;
+  nowTs?: string;        // Aktueller Zeitstempel (ISO String)
+  nowScore?: number;     // Aktueller Score
 }
 
 const EMS = { GREEN_MAX: 29, YELLOW_MAX: 59, RED_MAX: 100 };
@@ -75,11 +77,9 @@ const CustomTooltip: React.FC<any> = ({ active, payload, label }) => {
   );
 };
 
-export function TrendChart({ data, confidence = "normal", className = "" }: TrendChartProps) {
+export function TrendChart({ data, confidence = "normal", className = "", nowTs, nowScore }: TrendChartProps) {
   const yDomain: [number, number] = [0, 100];
   const timeZone = "Europe/Berlin";
-  const now = new Date();
-  const nowTimestamp = now.toISOString();
 
   return (
     <div className={`rounded-2xl border border-border bg-card p-6 shadow-lg ${className}`}>
@@ -137,22 +137,33 @@ export function TrendChart({ data, confidence = "normal", className = "" }: Tren
             <ReferenceLine y={EMS.GREEN_MAX} stroke="#16a34a" strokeDasharray="4 4" strokeWidth={1.5} opacity={0.6} />
             <ReferenceLine y={EMS.YELLOW_MAX} stroke="#f59e0b" strokeDasharray="4 4" strokeWidth={1.5} opacity={0.6} />
             
-            {/* Aktuelle Zeit - vertikale gestrichelte Linie */}
-            <ReferenceLine 
-              x={nowTimestamp} 
-              stroke="#3b82f6" 
-              strokeWidth={2.5} 
-              strokeDasharray="5 5"
-              isFront={true}
-              label={{ 
-                value: '▼ JETZT', 
-                position: 'top', 
-                fill: '#3b82f6', 
-                fontSize: 13, 
-                fontWeight: 'bold',
-                offset: 8
-              }} 
-            />
+            {/* "JETZT"-Marker - vertikale gestrichelte Linie */}
+            {nowTs && (
+              <ReferenceLine 
+                x={nowTs} 
+                stroke="#334155" 
+                strokeWidth={2} 
+                strokeDasharray="6 6"
+                label={{ 
+                  value: 'JETZT', 
+                  position: 'top', 
+                  fill: '#334155', 
+                  fontSize: 12, 
+                  fontWeight: 700
+                }} 
+              />
+            )}
+            
+            {/* "JETZT"-Marker - horizontale gestrichelte Linie beim aktuellen Score */}
+            {typeof nowScore === "number" && (
+              <ReferenceLine 
+                y={nowScore} 
+                stroke="#334155" 
+                strokeWidth={1.5} 
+                strokeDasharray="6 6"
+                ifOverflow="extendDomain"
+              />
+            )}
             
             <Line
               type="monotone"
