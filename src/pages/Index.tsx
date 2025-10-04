@@ -9,21 +9,29 @@ import { TrendChart } from "@/components/TrendChart";
 import { MetadataBar } from "@/components/MetadataBar";
 import { CurrentConditions } from "@/components/CurrentConditions";
 import { PastureDataForm } from "@/components/PastureDataForm";
+import { HorseList } from "@/components/HorseList";
+import { TurnoutRecommendations } from "@/components/TurnoutRecommendations";
 import { useFruktanData } from "@/hooks/useFruktanData";
+import { useHorses } from "@/hooks/useHorses";
 import { Loader2, Download, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DEFAULT_LOCATION, type LocationData } from "@/types/fruktan";
 import { DEFAULT_PASTURE_DATA, type PastureData } from "@/types/pasture";
+import { DEFAULT_PASTURE_CONFIG } from "@/types/horse";
 import { exportToCSV, exportToPDF } from "@/lib/export";
 import { exportQuestionnaireToPDF } from "@/lib/questionnaireExport";
+import { exportTurnoutsToCSV } from "@/lib/horseExport";
+import { calculateAllTurnouts } from "@/lib/horseCalculations";
 import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const [location, setLocation] = useState<LocationData>(DEFAULT_LOCATION);
   const [pastureData, setPastureData] = useState<PastureData>(DEFAULT_PASTURE_DATA);
   const [activeTab, setActiveTab] = useState<string>("matrix");
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split("T")[0]);
   const { data, trendData, loading, error } = useFruktanData(true, location);
+  const { horses, activeHorses } = useHorses();
   const { toast } = useToast();
 
   // Load pasture data from localStorage
@@ -114,6 +122,64 @@ const Index = () => {
     }
   };
 
+  const handleExportTurnouts = () => {
+    if (!data) return;
+    
+    const dayData = getDayDataByDate(selectedDate);
+    if (!dayData) return;
+
+    const recommendations = activeHorses.flatMap((horse) =>
+      calculateAllTurnouts(
+        horse,
+        {
+          morning: { score: dayData.morning.score, level: dayData.morning.level },
+          noon: { score: dayData.noon.score, level: dayData.noon.level },
+          evening: { score: dayData.evening.score, level: dayData.evening.level },
+        },
+        DEFAULT_PASTURE_CONFIG
+      )
+    );
+
+    try {
+      exportTurnoutsToCSV(recommendations, horses, selectedDate);
+      toast({
+        title: "Weidezeiten exportiert",
+        description: "CSV wurde erfolgreich heruntergeladen.",
+      });
+    } catch (err) {
+      toast({
+        title: "Fehler",
+        description: "CSV-Export fehlgeschlagen.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getDayDataByDate = (date: string) => {
+    if (!data) return null;
+    const days = [data.today, data.tomorrow, data.dayAfterTomorrow, data.dayThree];
+    return days.find((d) => d.date === date);
+  };
+
+  const getTurnoutRecommendations = () => {
+    if (!data) return [];
+    
+    const dayData = getDayDataByDate(selectedDate);
+    if (!dayData) return [];
+
+    return activeHorses.flatMap((horse) =>
+      calculateAllTurnouts(
+        horse,
+        {
+          morning: { score: dayData.morning.score, level: dayData.morning.level },
+          noon: { score: dayData.noon.score, level: dayData.noon.level },
+          evening: { score: dayData.evening.score, level: dayData.evening.level },
+        },
+        DEFAULT_PASTURE_CONFIG
+      )
+    );
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -146,9 +212,10 @@ const Index = () => {
 
       <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger value="matrix">Fruktan-Matrix</TabsTrigger>
-            <TabsTrigger value="pasture">Weidestand-Eingabe</TabsTrigger>
+            <TabsTrigger value="pasture">Weidestand</TabsTrigger>
+            <TabsTrigger value="horses">Offenstall Pferde</TabsTrigger>
           </TabsList>
 
           <TabsContent value="matrix" className="space-y-4 sm:space-y-6 md:space-y-8">
@@ -244,6 +311,67 @@ const Index = () => {
               onChange={setPastureData}
               onSave={handleSavePastureData}
             />
+          </TabsContent>
+
+          <TabsContent value="horses" className="space-y-6">
+            <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
+              <h2 className="text-lg font-semibold mb-2">Offenstall Pferde</h2>
+              <p className="text-sm text-muted-foreground">
+                Erfassen Sie Ihre Pferde mit minimalen Angaben und erhalten Sie pferdeindividuelle Weidezeit-Empfehlungen 
+                basierend auf NSC-Budget, Ration und den aktuellen Fruktan-Scores.
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                <strong>Berechnungsgrundlage:</strong> NSC-Budget (8-12 g/kg KM), Grundlast aus Heu/Kraftfutter, 
+                Aufnahmerate (1.0 kg TM/h ohne / 0.5 kg TM/h mit Maulkorb), konservative Score-zu-NSC-Mappierung.
+              </p>
+            </div>
+
+            <HorseList />
+
+            {activeHorses.length > 0 && data && (
+              <>
+                <div className="border-t pt-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <label className="text-sm font-medium">Datum wählen:</label>
+                      <select
+                        value={selectedDate}
+                        onChange={(e) => setSelectedDate(e.target.value)}
+                        className="ml-2 rounded-md border border-input bg-background px-3 py-2"
+                      >
+                        <option value={data.today.date}>
+                          Heute ({new Date(data.today.date).toLocaleDateString("de-DE")})
+                        </option>
+                        <option value={data.tomorrow.date}>
+                          Morgen ({new Date(data.tomorrow.date).toLocaleDateString("de-DE")})
+                        </option>
+                        <option value={data.dayAfterTomorrow.date}>
+                          Übermorgen ({new Date(data.dayAfterTomorrow.date).toLocaleDateString("de-DE")})
+                        </option>
+                        <option value={data.dayThree.date}>
+                          Tag 3 ({new Date(data.dayThree.date).toLocaleDateString("de-DE")})
+                        </option>
+                      </select>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleExportTurnouts}
+                      className="gap-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      CSV exportieren
+                    </Button>
+                  </div>
+
+                  <TurnoutRecommendations
+                    recommendations={getTurnoutRecommendations()}
+                    horses={horses}
+                    date={selectedDate}
+                  />
+                </div>
+              </>
+            )}
           </TabsContent>
         </Tabs>
       </main>
