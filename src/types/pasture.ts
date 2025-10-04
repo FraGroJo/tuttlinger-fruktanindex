@@ -3,6 +3,9 @@
  */
 
 export interface PastureData {
+  // Metadata
+  savedAt?: string; // ISO timestamp when data was saved
+  
   // Grasbestand (20% Einfluss)
   grassType: "weidelgras" | "wiesenrispe" | "wiesenschwingel" | "rotschwingel" | "mix";
   cloverPercentage: "0-10" | "10-30" | ">30";
@@ -36,6 +39,7 @@ export interface PastureData {
 }
 
 export const DEFAULT_PASTURE_DATA: PastureData = {
+  savedAt: undefined,
   grassType: "mix",
   cloverPercentage: "0-10",
   pastureAge: "1-3",
@@ -56,6 +60,32 @@ export const DEFAULT_PASTURE_DATA: PastureData = {
   laminitisSensitive: false,
   notes: "",
 };
+
+/**
+ * Prüft, ob die Weidestand-Daten noch gültig sind (max. 7 Tage alt)
+ */
+export function isPastureDataValid(data: PastureData): boolean {
+  if (!data.savedAt) return false;
+  
+  const savedDate = new Date(data.savedAt);
+  const now = new Date();
+  const daysDiff = (now.getTime() - savedDate.getTime()) / (1000 * 60 * 60 * 24);
+  
+  return daysDiff <= 7;
+}
+
+/**
+ * Gibt die verbleibenden Tage zurück, bis die Daten ablaufen
+ */
+export function getDaysUntilExpiry(data: PastureData): number {
+  if (!data.savedAt) return 0;
+  
+  const savedDate = new Date(data.savedAt);
+  const now = new Date();
+  const daysDiff = (now.getTime() - savedDate.getTime()) / (1000 * 60 * 60 * 24);
+  
+  return Math.max(0, Math.ceil(7 - daysDiff));
+}
 
 /**
  * Berechnet Anpassungsfaktoren basierend auf Weidestand-Daten

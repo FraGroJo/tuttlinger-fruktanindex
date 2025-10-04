@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { PastureData, DEFAULT_PASTURE_DATA } from "@/types/pasture";
+import { PastureData, DEFAULT_PASTURE_DATA, isPastureDataValid, getDaysUntilExpiry } from "@/types/pasture";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Save, RotateCcw } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Save, RotateCcw, Calendar, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 interface PastureDataFormProps {
   data: PastureData;
@@ -24,8 +25,71 @@ export function PastureDataForm({ data, onChange, onSave }: PastureDataFormProps
     onChange({ ...data, [field]: value });
   };
 
+  const isValid = isPastureDataValid(data);
+  const daysRemaining = getDaysUntilExpiry(data);
+  const hasData = data.savedAt !== undefined;
+
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("de-DE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   return (
     <div className="space-y-6">
+      {/* Status Alert */}
+      {hasData && (
+        <Alert variant={isValid ? "default" : "destructive"}>
+          {isValid ? (
+            <CheckCircle2 className="h-4 w-4" />
+          ) : (
+            <AlertTriangle className="h-4 w-4" />
+          )}
+          <AlertTitle className="flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            Weidestand-Daten Status
+          </AlertTitle>
+          <AlertDescription>
+            {isValid ? (
+              <>
+                <strong>Aktiv</strong> - Gespeichert am {formatDate(data.savedAt!)}.
+                <br />
+                Noch <strong>{daysRemaining} Tag{daysRemaining !== 1 ? "e" : ""}</strong> gültig (bis {formatDate(new Date(new Date(data.savedAt!).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString())}).
+                <br />
+                <span className="text-sm text-muted-foreground">
+                  Die Daten beeinflussen aktuell die Fruktan-Berechnung. Nach Ablauf wird automatisch auf API-Daten ohne manuelle Anpassungen zurückgegriffen.
+                </span>
+              </>
+            ) : (
+              <>
+                <strong>Abgelaufen</strong> - Die Daten sind älter als 7 Tage (gespeichert am {formatDate(data.savedAt!)}).
+                <br />
+                <span className="text-sm">
+                  Die Fruktan-Berechnung verwendet derzeit <strong>nur API-Daten ohne Weidestand-Anpassungen</strong>.
+                  Bitte aktualisieren Sie die Daten, um präzisere Ergebnisse zu erhalten.
+                </span>
+              </>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {!hasData && (
+        <Alert>
+          <Calendar className="h-4 w-4" />
+          <AlertTitle>Keine Weidestand-Daten vorhanden</AlertTitle>
+          <AlertDescription>
+            Geben Sie die aktuellen Bedingungen Ihrer Weide ein, um die Fruktan-Berechnung zu präzisieren.
+            Die Daten bleiben <strong>7 Tage</strong> gültig und sollten 1-2x pro Woche aktualisiert werden.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Grasbestand */}
       <Card>
         <CardHeader>

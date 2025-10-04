@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { calculatePastureAdjustments, type PastureData } from "@/types/pasture";
+import { calculatePastureAdjustments, isPastureDataValid, type PastureData } from "@/types/pasture";
 import { type FruktanResponse, type DayMatrix, type TrendDataPoint, type LocationData, DEFAULT_LOCATION, type TemperatureSpectrum, type CurrentConditions, type RawWindowData, type SourceMetadata, type ParityHashes } from "@/types/fruktan";
 import { calculateScore, getRiskLevel, generateReason, type ScoringInput } from "@/lib/scoring";
 
@@ -357,7 +357,7 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
         slot,
       };
       
-      // Weidestand-Anpassungen laden (falls vorhanden)
+      // Weidestand-Anpassungen laden (falls vorhanden und noch gültig)
       const pastureDataStr = localStorage.getItem("pastureData");
       let pastureMultiplier = 1.0;
       let pastureOffset = 0;
@@ -366,10 +366,17 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
       if (pastureDataStr) {
         try {
           const pastureData: PastureData = JSON.parse(pastureDataStr);
-          const adjustments = calculatePastureAdjustments(pastureData);
-          pastureMultiplier = adjustments.multiplier;
-          pastureOffset = adjustments.offset;
-          pastureReasons = adjustments.reason;
+          
+          // Prüfe, ob Daten noch gültig sind (max. 7 Tage alt)
+          if (isPastureDataValid(pastureData)) {
+            const adjustments = calculatePastureAdjustments(pastureData);
+            pastureMultiplier = adjustments.multiplier;
+            pastureOffset = adjustments.offset;
+            pastureReasons = adjustments.reason;
+          } else {
+            // Daten sind abgelaufen - markiere dies
+            pastureReasons.push("⚠️ Weidestand-Daten abgelaufen (>7 Tage alt)");
+          }
         } catch (e) {
           console.warn("Failed to parse pasture data", e);
         }

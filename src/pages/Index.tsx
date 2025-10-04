@@ -39,11 +39,20 @@ const Index = () => {
   }, []);
 
   const handleSavePastureData = () => {
-    localStorage.setItem("pastureData", JSON.stringify(pastureData));
+    // Add timestamp to data
+    const dataWithTimestamp: PastureData = {
+      ...pastureData,
+      savedAt: new Date().toISOString(),
+    };
+    
+    localStorage.setItem("pastureData", JSON.stringify(dataWithTimestamp));
+    setPastureData(dataWithTimestamp);
+    
     toast({
       title: "Weidestand gespeichert",
-      description: "Die Daten wurden gespeichert und die Berechnung wird aktualisiert.",
+      description: "Die Daten wurden gespeichert und sind 7 Tage gültig. Die Berechnung wird aktualisiert.",
     });
+    
     // Reload page to recalculate with new pasture data
     setTimeout(() => window.location.reload(), 500);
   };
@@ -219,11 +228,15 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="pasture" className="space-y-4">
-            <div className="mb-4 p-4 bg-muted/50 rounded-lg">
+            <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
               <h2 className="text-lg font-semibold mb-2">Weidestand-Parameter</h2>
               <p className="text-sm text-muted-foreground">
                 Geben Sie die aktuellen Bedingungen Ihrer Weide ein, um die Fruktan-Berechnung zu präzisieren. 
                 Die Anpassungen werden sofort nach dem Speichern übernommen und können die Risikoeinschätzung um ±50% beeinflussen.
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                <strong>Empfehlung:</strong> Aktualisieren Sie die Daten 1-2x pro Woche. Die Daten bleiben 7 Tage gültig und 
+                werden danach automatisch deaktiviert, bis neue Eingaben erfolgen.
               </p>
             </div>
             <PastureDataForm
