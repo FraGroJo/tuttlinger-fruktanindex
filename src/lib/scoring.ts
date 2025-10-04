@@ -177,13 +177,6 @@ export function calculateScore(
     if (rh < 60) {
       score += 8;
     }
-
-    // Morgen-Kälte-Stack
-    if (input.tempMin <= 0) {
-      score += 8;
-    } else if (input.tempMin <= 5) {
-      score += 5;
-    }
   }
 
   // === Weidestand-Anpassungen anwenden ===

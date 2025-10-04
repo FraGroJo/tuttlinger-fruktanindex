@@ -136,45 +136,45 @@ export function calculatePastureAdjustments(data: PastureData): {
     const speciesData = data.presentSpecies
       .map(id => PLANT_SPECIES.find(s => s.id === id))
       .filter((s): s is PlantSpecies => s !== undefined);
-
-    // Berechne durchschnittlichen Risikomodifikator basierend auf Pflanzenvielfalt
-    const avgRiskModifier = speciesData.reduce((sum, s) => sum + s.riskModifier, 0) / speciesData.length;
     
     // Kategorisiere Pflanzen
     const herbs = speciesData.filter(s => s.category === "herb");
     const legumes = speciesData.filter(s => s.category === "legume");
     const weeds = speciesData.filter(s => s.category === "weed");
 
-    // Kräuter-Einfluss (je mehr, desto besser)
+    // Kräuter-Einfluss (je mehr, desto besser) - ADDITIV
     if (herbs.length >= 5) {
-      multiplier *= 0.85;
+      const herbReduction = 0.15;
+      multiplier -= herbReduction;
       reasons.push(`Hohe Kräutervielfalt (${herbs.length} Arten: ${herbs.map(h => h.name).join(", ")}) - Reduktion -15%`);
     } else if (herbs.length >= 3) {
-      multiplier *= 0.92;
+      const herbReduction = 0.08;
+      multiplier -= herbReduction;
       reasons.push(`Mittlere Kräutervielfalt (${herbs.length} Arten: ${herbs.map(h => h.name).join(", ")}) - Reduktion -8%`);
     } else if (herbs.length > 0) {
-      multiplier *= 0.97;
+      const herbReduction = 0.03;
+      multiplier -= herbReduction;
       reasons.push(`Geringe Kräutervielfalt (${herbs.length} Arten: ${herbs.map(h => h.name).join(", ")}) - Reduktion -3%`);
     }
 
-    // Leguminosen-Einfluss
+    // Leguminosen-Einfluss - ADDITIV
     if (legumes.length >= 2) {
-      multiplier *= 0.85;
+      multiplier -= 0.15;
       offset -= 3;
       reasons.push(`Mehrere Leguminosen (${legumes.map(l => l.name).join(", ")}) - Reduktion -15%, -3 Punkte`);
     } else if (legumes.length === 1) {
-      multiplier *= 0.92;
+      multiplier -= 0.08;
       offset -= 2;
       reasons.push(`${legumes[0].name} vorhanden - Reduktion -8%, -2 Punkte`);
     }
 
-    // Unkräuter-Einfluss (negativ)
+    // Unkräuter-Einfluss (negativ) - ADDITIV
     if (weeds.length > 0) {
-      const weedEffect = weeds.reduce((sum, w) => sum + (w.riskModifier - 1.0), 0) * 100;
+      const weedEffect = weeds.reduce((sum, w) => sum + (w.riskModifier - 1.0), 0);
       const weedOffset = weeds.length * 3;
-      multiplier *= (1 + weedEffect / 100);
+      multiplier += weedEffect;
       offset += weedOffset;
-      reasons.push(`Unkräuter erkannt (${weeds.map(w => w.name).join(", ")}) - Erhöhung +${weedEffect.toFixed(0)}%, +${weedOffset} Punkte`);
+      reasons.push(`Unkräuter erkannt (${weeds.map(w => w.name).join(", ")}) - Erhöhung +${(weedEffect * 100).toFixed(0)}%, +${weedOffset} Punkte`);
     }
 
     // Spezifische Pflanzen mit besonderen Eigenschaften
@@ -189,17 +189,15 @@ export function calculatePastureAdjustments(data: PastureData): {
     }
   }
 
-  // === BESTEHENDE BERECHNUNGEN ===
-
-  // Grasarten-Einfluss (±15%)
+  // === Grasarten-Einfluss (±15%) - ADDITIV ===
   const grassFactors = {
-    weidelgras: 1.15, // höchste Fruktanakkumulation
-    wiesenrispe: 1.05,
-    mix: 1.0,
-    wiesenschwingel: 0.95,
-    rotschwingel: 0.9,
+    weidelgras: 0.15, // höchste Fruktanakkumulation
+    wiesenrispe: 0.05,
+    mix: 0.0,
+    wiesenschwingel: -0.05,
+    rotschwingel: -0.1,
   };
-  multiplier *= grassFactors[data.grassType];
+  multiplier += grassFactors[data.grassType];
   if (data.grassType === "weidelgras") {
     reasons.push("Deutsches Weidelgras (+15% Risiko)");
   } else if (data.grassType === "rotschwingel") {
@@ -218,15 +216,15 @@ export function calculatePastureAdjustments(data: PastureData): {
     reasons.push("Hohes Gras (-5 Punkte)");
   }
 
-  // Wachstumsphase
+  // Wachstumsphase - ADDITIV
   if (data.growthPhase === "sehr-schnell") {
-    multiplier *= 0.75;
+    multiplier -= 0.25;
     reasons.push("Sehr schnelles Wachstum (-25% Risiko)");
   } else if (data.growthPhase === "aktiv") {
-    multiplier *= 0.85;
+    multiplier -= 0.15;
     reasons.push("Aktives Wachstum (-15% Risiko)");
   } else if (data.growthPhase === "ruhend") {
-    multiplier *= 1.2;
+    multiplier += 0.2;
     reasons.push("Ruhendes Wachstum (+20% Risiko)");
   }
 
@@ -246,12 +244,12 @@ export function calculatePastureAdjustments(data: PastureData): {
     reasons.push("Frisch beweidet (-8 Punkte)");
   }
 
-  // Stickstoffdüngung
+  // Stickstoffdüngung - ADDITIV
   if (data.lastNFertilization === "<2w" && data.nAmount !== "0") {
-    multiplier *= 0.8;
+    multiplier -= 0.2;
     reasons.push("Frische N-Düngung (-20% Risiko)");
   } else if (data.lastNFertilization === ">8w" || data.lastNFertilization === "keine") {
-    multiplier *= 1.1;
+    multiplier += 0.1;
     reasons.push("Lange keine N-Düngung (+10% Risiko)");
   }
 
@@ -260,7 +258,7 @@ export function calculatePastureAdjustments(data: PastureData): {
     offset += 5;
     reasons.push("Trockener Boden (+5 Punkte)");
   } else if (data.soilMoisture === "nass") {
-    multiplier *= 0.9;
+    multiplier -= 0.1;
     reasons.push("Nasser Boden (-10% Risiko)");
   }
 
