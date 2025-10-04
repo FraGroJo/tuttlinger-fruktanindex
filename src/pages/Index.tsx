@@ -151,7 +151,6 @@ const Index = () => {
             data={trendData} 
             confidence={data.confidence}
             nowTs={data.source.data_timestamp_local}
-            nowScore={data.fruktanNow?.score}
           />
         </section>
       </main>
