@@ -248,9 +248,12 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
     
     const precip_7d = last7DaysHours.reduce((sum, { idx }) => 
       sum + (hourlyData.precipitation[idx] || 0), 0);
-    const et0_7d = last7DaysHours.reduce((sum, { idx }) => 
+    
+    // ET0 ist in mm (kumulativ pro Stunde), daher aufsummieren und durch Anzahl TAGE teilen
+    const et0_7d_total = last7DaysHours.reduce((sum, { idx }) => 
       sum + (hourlyData.et0_fao_evapotranspiration[idx] || 0), 0);
-    const et0_7d_avg = last7DaysHours.length > 0 ? et0_7d / last7DaysHours.length : 0;
+    const days7 = last7DaysHours.length / 24; // Umrechnung Stunden -> Tage
+    const et0_7d_avg = days7 > 0 ? et0_7d_total / days7 : 0;
     
     // 3-Tage Wind-Durchschnitt
     const threeDaysAgo = new Date(targetDate);
@@ -569,9 +572,12 @@ async function fetchTrendData(location: LocationData, emsMode: boolean): Promise
     
     const precip_7d = last7DaysHours.reduce((sum, { idx }) => 
       sum + (hourlyData.precipitation[idx] || 0), 0);
-    const et0_7d = last7DaysHours.reduce((sum, { idx }) => 
+    
+    // ET0 ist kumulativ pro Stunde, daher aufsummieren und durch Anzahl TAGE teilen
+    const et0_7d_total = last7DaysHours.reduce((sum, { idx }) => 
       sum + (hourlyData.et0_fao_evapotranspiration[idx] || 0), 0);
-    const et0_7d_avg = last7DaysHours.length > 0 ? et0_7d / last7DaysHours.length : 0;
+    const days7 = last7DaysHours.length / 24;
+    const et0_7d_avg = days7 > 0 ? et0_7d_total / days7 : 0;
     
     // 3-Tage Wind-Durchschnitt
     const threeDaysAgo = new Date(targetDate);
