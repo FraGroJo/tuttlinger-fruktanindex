@@ -108,28 +108,56 @@ export function DetailModal({ day, slot, onClose }: DetailModalProps) {
               </div>
 
               {/* Visual Temperature Bar */}
-              <div className="mt-4 relative h-8 bg-gradient-to-r from-blue-200 via-yellow-200 to-red-200 rounded">
-                <div
-                  className="absolute h-full w-1 bg-gray-800"
-                  style={{
-                    left: `${((tempSpectrum.min + 30) / 75) * 100}%`,
-                  }}
-                  title={`Min: ${tempSpectrum.min.toFixed(1)}°C`}
-                />
-                <div
-                  className="absolute h-full w-1 bg-black"
-                  style={{
-                    left: `${((tempSpectrum.median + 30) / 75) * 100}%`,
-                  }}
-                  title={`Median: ${tempSpectrum.median.toFixed(1)}°C`}
-                />
-                <div
-                  className="absolute h-full w-1 bg-gray-800"
-                  style={{
-                    left: `${((tempSpectrum.max + 30) / 75) * 100}%`,
-                  }}
-                  title={`Max: ${tempSpectrum.max.toFixed(1)}°C`}
-                />
+              <div className="mt-4 space-y-2">
+                <div className="text-xs text-muted-foreground">Visualisierung:</div>
+                <div className="relative h-12 bg-gradient-to-r from-blue-400 via-yellow-300 to-red-400 rounded-lg shadow-inner">
+                  {/* Min Marker */}
+                  <div
+                    className="absolute top-0 h-full w-1 bg-blue-900 shadow-lg"
+                    style={{
+                      left: `${Math.max(0, Math.min(100, ((tempSpectrum.min + 20) / 60) * 100))}%`,
+                    }}
+                    title={`Min: ${tempSpectrum.min.toFixed(1)}°C`}
+                  >
+                    <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-blue-900 whitespace-nowrap">
+                      Min
+                    </div>
+                  </div>
+                  
+                  {/* Median Marker */}
+                  <div
+                    className="absolute top-0 h-full w-1.5 bg-gray-900 shadow-lg"
+                    style={{
+                      left: `${Math.max(0, Math.min(100, ((tempSpectrum.median + 20) / 60) * 100))}%`,
+                    }}
+                    title={`Median: ${tempSpectrum.median.toFixed(1)}°C`}
+                  >
+                    <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-gray-900 whitespace-nowrap">
+                      Median
+                    </div>
+                  </div>
+                  
+                  {/* Max Marker */}
+                  <div
+                    className="absolute top-0 h-full w-1 bg-red-900 shadow-lg"
+                    style={{
+                      left: `${Math.max(0, Math.min(100, ((tempSpectrum.max + 20) / 60) * 100))}%`,
+                    }}
+                    title={`Max: ${tempSpectrum.max.toFixed(1)}°C`}
+                  >
+                    <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-red-900 whitespace-nowrap">
+                      Max
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Temperature Scale */}
+                <div className="flex justify-between text-[10px] text-muted-foreground px-1">
+                  <span>-20°C</span>
+                  <span>0°C</span>
+                  <span>20°C</span>
+                  <span>40°C</span>
+                </div>
               </div>
             </Card>
 
