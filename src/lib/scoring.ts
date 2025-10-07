@@ -192,19 +192,23 @@ export function calculateScore(
   const isNoon = slot === "noon";
 
   // === Kälte-Frost-Bonus (Morning > Noon > Evening) ===
+  // Basierend auf Referenztabelle: 8°C ist die kritische Schwelle
   if (input.tempMin <= 0) {
-    const frostBonus = isMorning ? 30 : isNoon ? 20 : 15; // Erhöht!
+    // Frost: Extrem hohes Risiko
+    const frostBonus = isMorning ? 40 : isNoon ? 30 : 20; // Erhöht für "extrem hoch"
     score += frostBonus;
     debugInfo.push(`Frost (${input.tempMin.toFixed(1)}°C): +${frostBonus}`);
-  } else if (input.tempMin <= 5) {
-    const coldBonus = isMorning ? 15 : isNoon ? 10 : 7; // Erhöht!
+  } else if (input.tempMin <= 8) {
+    // Kälte unter 8°C: Gemäß Tabelle kritische Schwelle
+    const coldBonus = isMorning ? 20 : isNoon ? 15 : 10;
     score += coldBonus;
     debugInfo.push(`Cold (${input.tempMin.toFixed(1)}°C): +${coldBonus}`);
   }
 
   // === Trockenheits-Stress (7d ET0 & Precip) - mit Jahreszeitanpassung ===
+  // "Sonnig und trocken" oder "bedeckt und trocken" gemäß Tabelle
   const dryScore = calculateDrynessScore(input.et0_7d_avg, input.precip_7d_sum, input.wind_3d_avg, calcDate);
-  const dryWeight = isMorning ? 1.2 : isNoon ? 0.8 : 0.4; // Erhöht!
+  const dryWeight = isMorning ? 1.3 : isNoon ? 1.0 : 0.5; // Erhöht für bessere Abbildung
   const weightedDryScore = dryScore * dryWeight;
   score += weightedDryScore;
   if (weightedDryScore > 0) {
@@ -212,9 +216,10 @@ export function calculateScore(
   }
 
   // === Diurnal Range Boost ===
+  // Große Tag-Nacht-Temperaturunterschiede erhöhen Risiko
   const diurnalRange = input.tempMax - input.tempMin;
   const diurnalBoost = calculateDiurnalBoost(diurnalRange);
-  const diurnalWeight = isMorning ? 1.2 : isNoon ? 0.8 : 0.5; // Erhöht!
+  const diurnalWeight = isMorning ? 1.3 : isNoon ? 1.0 : 0.6; // Angepasst
   const weightedDiurnalBoost = diurnalBoost * diurnalWeight;
   score += weightedDiurnalBoost;
   if (weightedDiurnalBoost > 0) {
@@ -239,16 +244,18 @@ export function calculateScore(
   if (isMorning) {
     const rad = input.radiationMorning;
     if (rad > 100) {
-      const radBonus = mapRange(rad, 100, 800, 0, 25); // Erhöht von 20 auf 25!
-      const clampedRadBonus = clamp(radBonus, 0, 25);
+      // "Sonnig" gemäß Tabelle: Hohe Strahlung erhöht Risiko deutlich
+      const radBonus = mapRange(rad, 100, 800, 0, 30); // Erhöht für sonnige Bedingungen
+      const clampedRadBonus = clamp(radBonus, 0, 30);
       score += clampedRadBonus;
       debugInfo.push(`Morning sun (${rad.toFixed(0)} W/m²): +${clampedRadBonus.toFixed(1)}`);
     }
 
     // Luftfeuchte-Bonus für trockene Morgen
+    // "Trocken" gemäß Tabelle erhöht Risiko
     const rh = input.relativeHumidityMorning;
-    if (rh < 60) {
-      const humidityBonus = 10; // Erhöht von 8 auf 10!
+    if (rh < 65) {
+      const humidityBonus = 12; // Erhöht für trockene Bedingungen
       score += humidityBonus;
       debugInfo.push(`Low humidity (${rh.toFixed(0)}%): +${humidityBonus}`);
     }
@@ -287,14 +294,14 @@ export function getRiskLevel(score: number, emsMode: boolean): RiskLevel {
 export function generateReason(input: ScoringInput, score: number): string {
   const { tempMin, radiationMorning, cloudCoverSlot, et0_7d_avg, precip_7d_sum, slot } = input;
 
-  // Frost + Sonne am Morgen
-  if (slot === "morning" && tempMin <= 0 && radiationMorning > 400) {
-    return `Frostnacht (${tempMin.toFixed(1)} °C) und sonniger Morgen → erhöhtes Risiko am Vormittag.`;
+  // Frost + Sonne am Morgen (extrem hoch gemäß Tabelle)
+  if (slot === "morning" && tempMin <= 0 && radiationMorning > 300) {
+    return `Frostnacht (${tempMin.toFixed(1)} °C) und sonniger Morgen → extrem hohes Risiko.`;
   }
 
-  // Kalte Nacht + Sonne am Morgen
-  if (slot === "morning" && tempMin <= 5 && tempMin > 0 && radiationMorning > 400) {
-    return `Kalte Nacht (${tempMin.toFixed(1)} °C) und hohe Einstrahlung → erhöhtes Risiko am Vormittag.`;
+  // Kalte Nacht (<8°C) + Sonne am Morgen (hoch gemäß Tabelle)
+  if (slot === "morning" && tempMin <= 8 && tempMin > 0 && radiationMorning > 300) {
+    return `Kalte Nacht (${tempMin.toFixed(1)} °C) und hohe Einstrahlung → hohes Risiko.`;
   }
 
   // Hoher ET0-Stress
