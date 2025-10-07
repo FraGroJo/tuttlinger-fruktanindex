@@ -546,9 +546,50 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
 
 /**
  * Lädt echte Trend-Daten von Open-Meteo (-72h bis +168h) mit vollständiger Scoring-Logik
+ * INKL. Hay- und Pasture-Anpassungen für Konsistenz mit Tagesprognosen
  */
 async function fetchTrendData(location: LocationData, emsMode: boolean): Promise<TrendDataPoint[]> {
   const { lat, lon } = location;
+  
+  // Lade Pasture-Anpassungen (identisch zu fetchWeatherData)
+  const pastureDataStr = localStorage.getItem("pastureData");
+  let pastureMultiplier = 1.0;
+  let pastureOffset = 0;
+  
+  if (pastureDataStr) {
+    try {
+      const pastureData: PastureData = JSON.parse(pastureDataStr);
+      if (isPastureDataValid(pastureData)) {
+        const adj = calculatePastureAdjustments(pastureData);
+        pastureMultiplier = adj.multiplier;
+        pastureOffset = adj.offset;
+      }
+    } catch (e) {
+      console.warn("Failed to parse pasture data in trend", e);
+    }
+  }
+  
+  // Lade Heuanalyse-Anpassungen (identisch zu fetchWeatherData)
+  const hayDataStr = localStorage.getItem("hayAnalysis");
+  let hayMultiplier = 1.0;
+  let hayOffset = 0;
+  
+  if (hayDataStr) {
+    try {
+      const hayData: HayAnalysis = JSON.parse(hayDataStr);
+      if (isHayAnalysisValid(hayData)) {
+        const hayAdj = calculateHayRiskMultiplier(hayData);
+        hayMultiplier = hayAdj.multiplier;
+        hayOffset = hayAdj.offset;
+      }
+    } catch (e) {
+      console.warn("Failed to parse hay analysis in trend", e);
+    }
+  }
+  
+  // Kombiniere beide Anpassungen
+  const finalMultiplier = pastureMultiplier * hayMultiplier;
+  const finalOffset = pastureOffset + hayOffset;
   
   const params = new URLSearchParams({
     latitude: lat.toString(),
@@ -627,7 +668,7 @@ async function fetchTrendData(location: LocationData, emsMode: boolean): Promise
     if (hour >= 11 && hour < 16) slot = "noon";
     else if (hour >= 16 && hour <= 21) slot = "evening";
     
-    // Vollständige Scoring-Logik verwenden
+    // Vollständige Scoring-Logik verwenden (MIT Hay- und Pasture-Anpassungen)
     const input: ScoringInput = {
       tempMin,
       tempMax,
@@ -641,7 +682,7 @@ async function fetchTrendData(location: LocationData, emsMode: boolean): Promise
       date: timestamp, // Datum für Jahreszeit-Anpassung
     };
     
-    const score = calculateScore(input, 1.0, 0);
+    const score = calculateScore(input, finalMultiplier, finalOffset);
     const level = getRiskLevel(score, emsMode);
     
     trendData.push({
