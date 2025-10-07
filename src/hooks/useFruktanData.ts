@@ -512,7 +512,7 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
 }
 
 /**
- * Lädt echte Trend-Daten von Open-Meteo (-72h bis +48h)
+ * Lädt echte Trend-Daten von Open-Meteo (-72h bis +168h) mit vollständiger Scoring-Logik
  */
 async function fetchTrendData(location: LocationData, emsMode: boolean): Promise<TrendDataPoint[]> {
   const { lat, lon } = location;
@@ -521,9 +521,9 @@ async function fetchTrendData(location: LocationData, emsMode: boolean): Promise
     latitude: lat.toString(),
     longitude: lon.toString(),
     timezone: "Europe/Berlin",
-    hourly: "temperature_2m,shortwave_radiation,cloud_cover,precipitation",
+    hourly: "temperature_2m,relative_humidity_2m,shortwave_radiation,cloud_cover,wind_speed_10m,precipitation,et0_fao_evapotranspiration",
     past_days: "3",
-    forecast_days: "3",
+    forecast_days: "7",
   });
 
   const url = `https://api.open-meteo.com/v1/forecast?${params}`;
@@ -535,28 +535,76 @@ async function fetchTrendData(location: LocationData, emsMode: boolean): Promise
 
   const data = await response.json();
   const hourlyData = data.hourly;
+  const hourlyTimes = hourlyData.time;
   
   const trendData: TrendDataPoint[] = [];
   
-  for (let i = 0; i < hourlyData.time.length; i++) {
-    const timestamp = new Date(hourlyData.time[i]);
+  for (let i = 0; i < hourlyTimes.length; i++) {
+    const timestamp = new Date(hourlyTimes[i]);
     const temperature = hourlyData.temperature_2m[i];
     const radiation = hourlyData.shortwave_radiation[i] || 0;
     const cloudCover = hourlyData.cloud_cover[i] || 0;
+    const relativeHumidity = hourlyData.relative_humidity_2m[i] || 70;
     const isFrost = temperature <= 0;
     
-    // Vereinfachter Score für Trend
-    let score = 20; // Base
-    if (temperature <= 0) score += 30;
-    if (temperature <= 5) score += 15;
+    // Berechne tempMin und tempMax für diesen Tag
+    const dateStr = hourlyTimes[i].split('T')[0];
+    const dayHours = hourlyTimes
+      .map((timeStr: string, idx: number) => ({ timeStr, idx }))
+      .filter(({ timeStr }) => timeStr.split('T')[0] === dateStr);
     
+    const dayTemps = dayHours.map(({ idx }) => hourlyData.temperature_2m[idx]).filter(t => !isNaN(t));
+    const tempMin = dayTemps.length > 0 ? Math.min(...dayTemps) : temperature;
+    const tempMax = dayTemps.length > 0 ? Math.max(...dayTemps) : temperature;
+    
+    // Berechne 7-Tage Aggregate (ET0 & Niederschlag)
+    const targetDate = new Date(dateStr + 'T12:00:00+02:00');
+    const sevenDaysAgo = new Date(targetDate);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
+    
+    const last7DaysHours = hourlyTimes
+      .map((timeStr: string, idx: number) => ({ dateStr: timeStr.split('T')[0], idx }))
+      .filter(({ dateStr }) => dateStr >= sevenDaysAgoStr && dateStr < dateStr);
+    
+    const precip_7d = last7DaysHours.reduce((sum, { idx }) => 
+      sum + (hourlyData.precipitation[idx] || 0), 0);
+    const et0_7d = last7DaysHours.reduce((sum, { idx }) => 
+      sum + (hourlyData.et0_fao_evapotranspiration[idx] || 0), 0);
+    const et0_7d_avg = last7DaysHours.length > 0 ? et0_7d / last7DaysHours.length : 0;
+    
+    // 3-Tage Wind-Durchschnitt
+    const threeDaysAgo = new Date(targetDate);
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    const threeDaysAgoStr = threeDaysAgo.toISOString().split('T')[0];
+    
+    const last3DaysHours = hourlyTimes
+      .map((timeStr: string, idx: number) => ({ dateStr: timeStr.split('T')[0], idx }))
+      .filter(({ dateStr }) => dateStr >= threeDaysAgoStr && dateStr < dateStr);
+    const wind_3d_avg = last3DaysHours.length > 0
+      ? last3DaysHours.reduce((sum, { idx }) => sum + (hourlyData.wind_speed_10m[idx] || 0), 0) / last3DaysHours.length
+      : 3;
+    
+    // Bestimme Zeitfenster
     const hour = timestamp.getHours();
-    if (hour >= 5 && hour <= 11 && temperature <= 5 && radiation > 300) {
-      score += 25;
-    }
-    score += Math.min(20, radiation / 40);
+    let slot: "morning" | "noon" | "evening" = "morning";
+    if (hour >= 11 && hour < 16) slot = "noon";
+    else if (hour >= 16 && hour <= 21) slot = "evening";
     
-    score = Math.max(0, Math.min(100, Math.round(score)));
+    // Vollständige Scoring-Logik verwenden
+    const input: ScoringInput = {
+      tempMin,
+      tempMax,
+      radiationMorning: radiation,
+      cloudCoverSlot: cloudCover,
+      precip_7d_sum: precip_7d,
+      wind_3d_avg,
+      relativeHumidityMorning: relativeHumidity,
+      et0_7d_avg,
+      slot,
+    };
+    
+    const score = calculateScore(input, 1.0, 0);
     const level = getRiskLevel(score, emsMode);
     
     trendData.push({
