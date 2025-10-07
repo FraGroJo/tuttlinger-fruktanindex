@@ -247,7 +247,10 @@ export function TrendChart({ data, confidence = "normal", className = "", nowTs,
               dataKey="score"
               stroke="#0f172a"
               strokeWidth={2}
-              dot={(props: any) => <RiskDotWithBadge {...props} nowX={nowX} />}
+              dot={(props: any) => {
+                const { key, ...rest } = props;
+                return <RiskDotWithBadge key={key} {...rest} nowX={nowX} />;
+              }}
               activeDot={{ r: 5, stroke: '#0f172a', strokeWidth: 2, fill: '#fff' }}
               isAnimationActive={false}
             />
