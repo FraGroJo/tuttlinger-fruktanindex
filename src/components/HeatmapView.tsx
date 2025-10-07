@@ -102,7 +102,7 @@ export function HeatmapView({ days, className = "" }: HeatmapViewProps) {
                     >
                       <div className="text-lg">{Math.round(slot.score)}</div>
                       <div className="text-[10px] opacity-90">
-                        {slot.tempSpectrum.median.toFixed(0)}°C
+                        {(slot.tempSpectrum?.median || slot.temperature_spectrum?.median || 0).toFixed(0)}°C
                       </div>
                     </button>
                   );

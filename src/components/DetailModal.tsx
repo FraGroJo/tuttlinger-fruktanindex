@@ -34,6 +34,13 @@ export function DetailModal({ day, slot, onClose }: DetailModalProps) {
     return null;
   }
 
+  // Use either tempSpectrum or temperature_spectrum
+  const tempSpectrum = slotData.tempSpectrum || slotData.temperature_spectrum;
+
+  if (!tempSpectrum) {
+    return null;
+  }
+
   return (
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -77,25 +84,25 @@ export function DetailModal({ day, slot, onClose }: DetailModalProps) {
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Minimum:</span>
                   <span className="font-medium">
-                    {slotData.tempSpectrum.min.toFixed(1)}°C
+                    {tempSpectrum.min.toFixed(1)}°C
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Median:</span>
                   <span className="font-medium">
-                    {slotData.tempSpectrum.median.toFixed(1)}°C
+                    {tempSpectrum.median.toFixed(1)}°C
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Maximum:</span>
                   <span className="font-medium">
-                    {slotData.tempSpectrum.max.toFixed(1)}°C
+                    {tempSpectrum.max.toFixed(1)}°C
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Spanne:</span>
                   <span className="font-medium">
-                    {(slotData.tempSpectrum.max - slotData.tempSpectrum.min).toFixed(1)}°C
+                    {(tempSpectrum.max - tempSpectrum.min).toFixed(1)}°C
                   </span>
                 </div>
               </div>
@@ -105,23 +112,23 @@ export function DetailModal({ day, slot, onClose }: DetailModalProps) {
                 <div
                   className="absolute h-full w-1 bg-gray-800"
                   style={{
-                    left: `${((slotData.tempSpectrum.min + 30) / 75) * 100}%`,
+                    left: `${((tempSpectrum.min + 30) / 75) * 100}%`,
                   }}
-                  title={`Min: ${slotData.tempSpectrum.min.toFixed(1)}°C`}
+                  title={`Min: ${tempSpectrum.min.toFixed(1)}°C`}
                 />
                 <div
                   className="absolute h-full w-1 bg-black"
                   style={{
-                    left: `${((slotData.tempSpectrum.median + 30) / 75) * 100}%`,
+                    left: `${((tempSpectrum.median + 30) / 75) * 100}%`,
                   }}
-                  title={`Median: ${slotData.tempSpectrum.median.toFixed(1)}°C`}
+                  title={`Median: ${tempSpectrum.median.toFixed(1)}°C`}
                 />
                 <div
                   className="absolute h-full w-1 bg-gray-800"
                   style={{
-                    left: `${((slotData.tempSpectrum.max + 30) / 75) * 100}%`,
+                    left: `${((tempSpectrum.max + 30) / 75) * 100}%`,
                   }}
-                  title={`Max: ${slotData.tempSpectrum.max.toFixed(1)}°C`}
+                  title={`Max: ${tempSpectrum.max.toFixed(1)}°C`}
                 />
               </div>
             </Card>
