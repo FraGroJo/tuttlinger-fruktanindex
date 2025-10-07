@@ -344,14 +344,26 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
         : { min: 0, max: 0, median: 0 };
       
       // Rohdaten sammeln (unveränderbar, keine Glättung)
+      const rawTemps = slotHours.map(({ idx }) => hourlyData.temperature_2m[idx]);
+      const rawRh = slotHours.map(({ idx }) => hourlyData.relative_humidity_2m[idx]);
+      const rawClouds = slotHours.map(({ idx }) => hourlyData.cloud_cover[idx]);
+      const rawPrecip = slotHours.map(({ idx }) => hourlyData.precipitation[idx]);
+      const rawWinds = slotHours.map(({ idx }) => hourlyData.wind_speed_10m[idx]);
+      const rawRads = slotHours.map(({ idx }) => hourlyData.shortwave_radiation[idx] || 0);
+      
       const rawData: RawWindowData = {
-        temperatures: slotHours.map(({ idx }) => hourlyData.temperature_2m[idx]),
-        relative_humidities: slotHours.map(({ idx }) => hourlyData.relative_humidity_2m[idx]),
-        cloud_covers: slotHours.map(({ idx }) => hourlyData.cloud_cover[idx]),
-        precipitations: slotHours.map(({ idx }) => hourlyData.precipitation[idx]),
-        wind_speeds: slotHours.map(({ idx }) => hourlyData.wind_speed_10m[idx]),
-        radiations: slotHours.map(({ idx }) => hourlyData.shortwave_radiation[idx] || 0),
+        temperatures: rawTemps,
+        relative_humidities: rawRh,
+        cloud_covers: rawClouds,
+        precipitations: rawPrecip,
+        wind_speeds: rawWinds,
+        radiations: rawRads,
         timestamps: slotHours.map(({ timeStr }) => timeStr),
+        // Durchschnittswerte berechnen
+        radiation_avg: rawRads.length > 0 ? rawRads.reduce((a, b) => a + b, 0) / rawRads.length : 0,
+        cloud_avg: rawClouds.length > 0 ? rawClouds.reduce((a, b) => a + b, 0) / rawClouds.length : 0,
+        rh_avg: rawRh.length > 0 ? rawRh.reduce((a, b) => a + b, 0) / rawRh.length : 0,
+        wind_avg: rawWinds.length > 0 ? rawWinds.reduce((a, b) => a + b, 0) / rawWinds.length : 0,
       };
       
       // Morning rH (06:00-10:00 lokal)
