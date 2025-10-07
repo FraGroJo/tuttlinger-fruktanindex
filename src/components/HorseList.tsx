@@ -31,11 +31,16 @@ export function HorseList() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const handleSubmit = (horse: HorseMinimal) => {
+    console.log("Submitting horse:", horse);
+    
     if (editingHorse) {
       updateHorse(horse.id, horse);
       toast({ title: "Pferd aktualisiert", description: `${horse.name} wurde gespeichert.` });
     } else {
-      addHorse(horse);
+      // Bei neuem Pferd: ID entfernen, damit addHorse eine neue erstellt
+      const { id, ...horseWithoutId } = horse;
+      const newHorse = addHorse(horseWithoutId);
+      console.log("Horse added:", newHorse);
       toast({ title: "Pferd hinzugefügt", description: `${horse.name} wurde erfolgreich angelegt.` });
     }
     setIsFormOpen(false);

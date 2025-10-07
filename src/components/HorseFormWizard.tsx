@@ -58,9 +58,15 @@ export function HorseFormWizard({ onSubmit, onCancel, initialData }: HorseFormWi
     const finalData = {
       ...formData,
       ...data,
-      id: initialData?.id || crypto.randomUUID(),
       is_active: true,
     } as HorseMinimal;
+    
+    // ID nur bei Bearbeitung übernehmen
+    if (initialData?.id) {
+      finalData.id = initialData.id;
+    }
+    
+    console.log("Final horse data:", finalData);
     onSubmit(finalData);
   };
 
