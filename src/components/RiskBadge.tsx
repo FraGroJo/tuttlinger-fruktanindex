@@ -8,11 +8,12 @@ import { CheckCircle, AlertTriangle, XCircle } from "lucide-react";
 
 interface RiskBadgeProps {
   level: RiskLevel;
-  score: number;
+  score?: number;
+  emsMode?: boolean;
   className?: string;
 }
 
-export function RiskBadge({ level, score, className = "" }: RiskBadgeProps) {
+export function RiskBadge({ level, score, emsMode, className = "" }: RiskBadgeProps) {
   const config = {
     safe: {
       bg: "bg-risk-safe-bg",
@@ -42,7 +43,7 @@ export function RiskBadge({ level, score, className = "" }: RiskBadgeProps) {
     >
       <Icon className="w-4 h-4" />
       <span>{label}</span>
-      <span className="ml-1 font-semibold">{score}</span>
+      {score !== undefined && <span className="ml-1 font-semibold">{Math.round(score)}</span>}
     </div>
   );
 }

@@ -126,6 +126,11 @@ export interface RawWindowData {
   wind_speeds: number[];         // km/h (direkt von Open-Meteo)
   radiations: number[];          // W/m²
   timestamps: string[];          // ISO timestamps
+  // Durchschnittswerte (optional, für Kompatibilität)
+  radiation_avg?: number;
+  cloud_avg?: number;
+  rh_avg?: number;
+  wind_avg?: number;
 }
 
 /**
@@ -150,6 +155,7 @@ export interface TimeSlotScore {
   level: RiskLevel;
   reason: string;
   temperature_spectrum?: TemperatureSpectrum;
+  tempSpectrum?: TemperatureSpectrum; // Alias für Kompatibilität
   raw?: RawWindowData;  // Rohdaten für Transparenz
   flags: string[]; // z.B. ["suspicious_jump", "radiation_cloud_inconsistency"]
   confidence: "normal" | "low";
@@ -160,6 +166,7 @@ export interface TimeSlotScore {
  */
 export interface DayMatrix {
   date: string; // ISO-Format YYYY-MM-DD
+  weekday?: string; // Wochentag (optional)
   morning: TimeSlotScore;
   noon: TimeSlotScore;
   evening: TimeSlotScore;

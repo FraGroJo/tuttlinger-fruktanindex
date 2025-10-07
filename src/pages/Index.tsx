@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { MatrixGrid } from "@/components/MatrixGrid";
 import { TrendChart } from "@/components/TrendChart";
+import { HeatmapView } from "@/components/HeatmapView";
 import { MetadataBar } from "@/components/MetadataBar";
 import { CurrentConditions } from "@/components/CurrentConditions";
 import { PastureDataForm } from "@/components/PastureDataForm";
@@ -297,6 +298,21 @@ const Index = () => {
                 <span className="sm:hidden">PDF</span>
               </Button>
             </div>
+
+            {/* Heatmap-View (7 Tage × 3 Fenster) */}
+            <section>
+              <HeatmapView 
+                days={[
+                  data.today,
+                  data.tomorrow,
+                  data.dayAfterTomorrow,
+                  data.dayThree,
+                  data.dayFour,
+                  data.dayFive,
+                  data.daySix,
+                ]}
+              />
+            </section>
 
             {/* Matrix-Karten mit Glassmorphism */}
             <section>
