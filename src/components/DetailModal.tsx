@@ -145,54 +145,153 @@ export function DetailModal({ day, slot, onClose }: DetailModalProps) {
             <Card className="p-4">
               <h4 className="font-semibold mb-4">Stündliche Wetterdaten</h4>
               
-              {slotData.raw && (
-                <div className="space-y-4">
-                  {/* Mini-Charts könnten hier eingefügt werden */}
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Sun className="w-4 h-4" />
-                        <span>Strahlung</span>
+              {slotData.raw && slotData.raw.timestamps && slotData.raw.timestamps.length > 0 ? (
+                <div className="space-y-6">
+                  {/* Stündliche Tabelle */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs md:text-sm">
+                      <thead>
+                        <tr className="border-b-2 border-primary/20">
+                          <th className="text-left py-2 px-1 md:px-2 font-semibold">Zeit</th>
+                          <th className="text-center py-2 px-1 md:px-2 font-semibold">
+                            <div className="flex items-center justify-center gap-1">
+                              <Thermometer className="w-3 h-3 md:w-4 md:h-4" />
+                              <span className="hidden md:inline">Temp</span>
+                            </div>
+                          </th>
+                          <th className="text-center py-2 px-1 md:px-2 font-semibold">
+                            <div className="flex items-center justify-center gap-1">
+                              <Droplets className="w-3 h-3 md:w-4 md:h-4" />
+                              <span className="hidden md:inline">LF</span>
+                            </div>
+                          </th>
+                          <th className="text-center py-2 px-1 md:px-2 font-semibold">
+                            <div className="flex items-center justify-center gap-1">
+                              <Cloud className="w-3 h-3 md:w-4 md:h-4" />
+                              <span className="hidden md:inline">Wolken</span>
+                            </div>
+                          </th>
+                          <th className="text-center py-2 px-1 md:px-2 font-semibold">
+                            <div className="flex items-center justify-center gap-1">
+                              <Sun className="w-3 h-3 md:w-4 md:h-4" />
+                              <span className="hidden md:inline">Strahlung</span>
+                            </div>
+                          </th>
+                          <th className="text-center py-2 px-1 md:px-2 font-semibold">
+                            <div className="flex items-center justify-center gap-1">
+                              <Wind className="w-3 h-3 md:w-4 md:h-4" />
+                              <span className="hidden md:inline">Wind</span>
+                            </div>
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {slotData.raw.timestamps.map((timestamp, idx) => {
+                          const temp = slotData.raw!.temperatures[idx];
+                          const rh = slotData.raw!.relative_humidities[idx];
+                          const cloud = slotData.raw!.cloud_covers[idx];
+                          const rad = slotData.raw!.radiations[idx];
+                          const wind = slotData.raw!.wind_speeds[idx];
+                          
+                          const time = new Date(timestamp).toLocaleTimeString('de-DE', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            timeZone: 'Europe/Berlin'
+                          });
+                          
+                          const isFrost = temp <= 0;
+                          const isCold = temp > 0 && temp <= 5;
+                          const isHighRad = rad > 400;
+                          
+                          return (
+                            <tr 
+                              key={timestamp} 
+                              className={`border-b border-border/50 hover:bg-muted/30 transition-colors ${
+                                isFrost ? 'bg-blue-50 dark:bg-blue-950/20' : ''
+                              }`}
+                            >
+                              <td className="py-2 px-1 md:px-2 font-medium">{time}</td>
+                              <td className={`text-center py-2 px-1 md:px-2 ${
+                                isFrost ? 'text-blue-600 font-bold' : 
+                                isCold ? 'text-blue-500' : ''
+                              }`}>
+                                {temp.toFixed(1)}°C
+                              </td>
+                              <td className="text-center py-2 px-1 md:px-2">
+                                {rh.toFixed(0)}%
+                              </td>
+                              <td className="text-center py-2 px-1 md:px-2">
+                                {cloud.toFixed(0)}%
+                              </td>
+                              <td className={`text-center py-2 px-1 md:px-2 ${
+                                isHighRad ? 'text-orange-600 font-semibold' : ''
+                              }`}>
+                                {rad.toFixed(0)} W/m²
+                              </td>
+                              <td className="text-center py-2 px-1 md:px-2">
+                                {wind.toFixed(1)} km/h
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Statistiken */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 pt-4 border-t">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
+                        <Sun className="w-3 h-3" />
+                        <span>Strahlung ⌀</span>
                       </div>
-                      <div className="text-xs">
-                        Durchschnitt: {slotData.raw.radiation_avg?.toFixed(0) || "—"} W/m²
+                      <div className="text-sm md:text-base font-semibold">
+                        {slotData.raw.radiation_avg?.toFixed(0) || "—"} W/m²
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Cloud className="w-4 h-4" />
-                        <span>Bewölkung</span>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
+                        <Cloud className="w-3 h-3" />
+                        <span>Bewölkung ⌀</span>
                       </div>
-                      <div className="text-xs">
-                        Durchschnitt: {slotData.raw.cloud_avg?.toFixed(0) || "—"}%
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Droplets className="w-4 h-4" />
-                        <span>Luftfeuchtigkeit</span>
-                      </div>
-                      <div className="text-xs">
-                        Durchschnitt: {slotData.raw.rh_avg?.toFixed(0) || "—"}%
+                      <div className="text-sm md:text-base font-semibold">
+                        {slotData.raw.cloud_avg?.toFixed(0) || "—"}%
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Wind className="w-4 h-4" />
-                        <span>Wind</span>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
+                        <Droplets className="w-3 h-3" />
+                        <span>Luftfeuchtigkeit ⌀</span>
                       </div>
-                      <div className="text-xs">
-                        Durchschnitt: {slotData.raw.wind_avg?.toFixed(1) || "—"} km/h
+                      <div className="text-sm md:text-base font-semibold">
+                        {slotData.raw.rh_avg?.toFixed(0) || "—"}%
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
+                        <Wind className="w-3 h-3" />
+                        <span>Wind ⌀</span>
+                      </div>
+                      <div className="text-sm md:text-base font-semibold">
+                        {slotData.raw.wind_avg?.toFixed(1) || "—"} km/h
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
 
-              {!slotData.raw && (
+                  {/* Hinweise */}
+                  <div className="text-xs text-muted-foreground bg-muted/30 p-3 rounded-md">
+                    <p className="font-semibold mb-1">Legende:</p>
+                    <ul className="space-y-1">
+                      <li>• <span className="text-blue-600 font-semibold">Blaue Temperaturen</span>: Frost (≤0°C) oder Kälte (≤5°C)</li>
+                      <li>• <span className="text-orange-600 font-semibold">Orange Strahlung</span>: Hohe Sonnenstrahlung (&gt;400 W/m²)</li>
+                      <li>• Zeit: Lokale Zeit (Europe/Berlin)</li>
+                    </ul>
+                  </div>
+                </div>
+              ) : (
                 <p className="text-sm text-muted-foreground">
                   Keine detaillierten Stundendaten verfügbar
                 </p>
