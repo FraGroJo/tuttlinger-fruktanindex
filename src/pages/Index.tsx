@@ -10,7 +10,6 @@ import { HeatmapView } from "@/components/HeatmapView";
 import { MetadataBar } from "@/components/MetadataBar";
 import { CurrentConditions } from "@/components/CurrentConditions";
 import { PastureDataForm } from "@/components/PastureDataForm";
-import { HayAnalysisForm } from "@/components/HayAnalysisForm";
 import { HorseList } from "@/components/HorseList";
 import { TurnoutMatrix } from "@/components/TurnoutMatrix";
 import { DataQualityBanner } from "@/components/DataQualityBanner";
@@ -351,15 +350,11 @@ const Index = () => {
               </p>
             </div>
             
-            <div className="space-y-6">
-              <HayAnalysisForm />
-              
-              <PastureDataForm
-                data={pastureData}
-                onChange={setPastureData}
-                onSave={handleSavePastureData}
-              />
-            </div>
+            <PastureDataForm
+              data={pastureData}
+              onChange={setPastureData}
+              onSave={handleSavePastureData}
+            />
           </TabsContent>
 
           <TabsContent value="horses" className="space-y-6">
