@@ -25,14 +25,23 @@ export function HeatmapView({ days, className = "" }: HeatmapViewProps) {
     slot: TimeSlot;
   } | null>(null);
 
-  const getRiskColor = (level: string): string => {
+  const getRiskColor = (level: string, score: number): string => {
     switch (level) {
       case "safe":
-        return "bg-green-500 hover:bg-green-600";
+        // Abstufungen innerhalb "Sicher" (0-29)
+        if (score <= 10) return "bg-green-300 hover:bg-green-400"; // Sehr sicher
+        if (score <= 20) return "bg-green-400 hover:bg-green-500"; // Sicher
+        return "bg-green-500 hover:bg-green-600"; // Noch sicher, aber höher
       case "moderate":
-        return "bg-yellow-500 hover:bg-yellow-600";
+        // Abstufungen innerhalb "Erhöht" (30-59)
+        if (score <= 40) return "bg-yellow-400 hover:bg-yellow-500"; // Leicht erhöht
+        if (score <= 50) return "bg-yellow-500 hover:bg-yellow-600"; // Erhöht
+        return "bg-yellow-600 hover:bg-yellow-700"; // Stark erhöht
       case "high":
-        return "bg-red-500 hover:bg-red-600";
+        // Abstufungen innerhalb "Riskant" (≥60)
+        if (score <= 70) return "bg-red-500 hover:bg-red-600"; // Riskant
+        if (score <= 85) return "bg-red-600 hover:bg-red-700"; // Sehr riskant
+        return "bg-red-700 hover:bg-red-800"; // Extrem riskant
       default:
         return "bg-gray-300 hover:bg-gray-400";
     }
@@ -96,7 +105,8 @@ export function HeatmapView({ days, className = "" }: HeatmapViewProps) {
                       key={key}
                       onClick={() => setSelectedSlot({ day, slot: key })}
                       className={`aspect-square rounded ${getRiskColor(
-                        slot.level
+                        slot.level,
+                        slot.score
                       )} transition-all cursor-pointer flex flex-col items-center justify-center text-white font-medium shadow-sm hover:shadow-md`}
                       title={`${day.date} ${key}: ${slot.score} (${slot.level})`}
                     >
@@ -116,15 +126,27 @@ export function HeatmapView({ days, className = "" }: HeatmapViewProps) {
         <div className="mt-4 pt-4 border-t">
           <div className="flex flex-wrap gap-4 text-xs">
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-green-500"></div>
+              <div className="flex gap-0.5">
+                <div className="w-3 h-4 rounded-l bg-green-300"></div>
+                <div className="w-3 h-4 bg-green-400"></div>
+                <div className="w-3 h-4 rounded-r bg-green-500"></div>
+              </div>
               <span>Sicher (0-29)</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-yellow-500"></div>
+              <div className="flex gap-0.5">
+                <div className="w-3 h-4 rounded-l bg-yellow-400"></div>
+                <div className="w-3 h-4 bg-yellow-500"></div>
+                <div className="w-3 h-4 rounded-r bg-yellow-600"></div>
+              </div>
               <span>Erhöht (30-59)</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-red-500"></div>
+              <div className="flex gap-0.5">
+                <div className="w-3 h-4 rounded-l bg-red-500"></div>
+                <div className="w-3 h-4 bg-red-600"></div>
+                <div className="w-3 h-4 rounded-r bg-red-700"></div>
+              </div>
               <span>Riskant (≥60)</span>
             </div>
           </div>
