@@ -14,6 +14,7 @@ import { HayAnalysisForm } from "@/components/HayAnalysisForm";
 import { HorseList } from "@/components/HorseList";
 import { TurnoutMatrix } from "@/components/TurnoutMatrix";
 import { DataQualityBanner } from "@/components/DataQualityBanner";
+import { ScoreDebugger } from "@/components/ScoreDebugger";
 import { useFruktanData } from "@/hooks/useFruktanData";
 import { useHorses } from "@/hooks/useHorses";
 import { Loader2, Download, FileText } from "lucide-react";
@@ -432,8 +433,12 @@ const Index = () => {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Debug-Komponente (nur während Entwicklung sichtbar) */}
+      <ScoreDebugger />
     </div>
   );
 };
 
 export default Index;
+

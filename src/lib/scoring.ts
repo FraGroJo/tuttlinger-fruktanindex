@@ -186,58 +186,88 @@ export function calculateScore(
   const slot = input.slot;
   const calcDate = input.date || new Date();
   let score = 20;
+  const debugInfo: string[] = [`Base: ${score}`];
 
   const isMorning = slot === "morning";
   const isNoon = slot === "noon";
 
   // === Kälte-Frost-Bonus (Morning > Noon > Evening) ===
   if (input.tempMin <= 0) {
-    const frostBonus = isMorning ? 15 : isNoon ? 7.5 : 4.5;
+    const frostBonus = isMorning ? 30 : isNoon ? 20 : 15; // Erhöht!
     score += frostBonus;
+    debugInfo.push(`Frost (${input.tempMin.toFixed(1)}°C): +${frostBonus}`);
   } else if (input.tempMin <= 5) {
-    const coldBonus = isMorning ? 10 : isNoon ? 5 : 3;
+    const coldBonus = isMorning ? 15 : isNoon ? 10 : 7; // Erhöht!
     score += coldBonus;
+    debugInfo.push(`Cold (${input.tempMin.toFixed(1)}°C): +${coldBonus}`);
   }
 
   // === Trockenheits-Stress (7d ET0 & Precip) - mit Jahreszeitanpassung ===
   const dryScore = calculateDrynessScore(input.et0_7d_avg, input.precip_7d_sum, input.wind_3d_avg, calcDate);
-  const dryWeight = isMorning ? 1.0 : isNoon ? 0.5 : 0.3;
-  score += dryScore * dryWeight;
+  const dryWeight = isMorning ? 1.2 : isNoon ? 0.8 : 0.4; // Erhöht!
+  const weightedDryScore = dryScore * dryWeight;
+  score += weightedDryScore;
+  if (weightedDryScore > 0) {
+    debugInfo.push(`Dryness: +${weightedDryScore.toFixed(1)}`);
+  }
 
   // === Diurnal Range Boost ===
   const diurnalRange = input.tempMax - input.tempMin;
   const diurnalBoost = calculateDiurnalBoost(diurnalRange);
-  const diurnalWeight = isMorning ? 1.0 : isNoon ? 0.5 : 0.3;
-  score += diurnalBoost * diurnalWeight;
+  const diurnalWeight = isMorning ? 1.2 : isNoon ? 0.8 : 0.5; // Erhöht!
+  const weightedDiurnalBoost = diurnalBoost * diurnalWeight;
+  score += weightedDiurnalBoost;
+  if (weightedDiurnalBoost > 0) {
+    debugInfo.push(`Diurnal (${diurnalRange.toFixed(1)}°C): +${weightedDiurnalBoost.toFixed(1)}`);
+  }
 
   // === Wolken-Relief ===
   const cloudRelief = calculateCloudRelief(input.cloudCoverSlot);
   score += cloudRelief;
+  if (cloudRelief < 0) {
+    debugInfo.push(`Cloud (${input.cloudCoverSlot.toFixed(0)}%): ${cloudRelief.toFixed(1)}`);
+  }
 
   // === Hitze-Relief - mit Jahreszeitanpassung ===
   const heatRelief = calculateHeatRelief(input.tempMax, input.precip_7d_sum, input.et0_7d_avg, calcDate);
   score += heatRelief;
+  if (heatRelief < 0) {
+    debugInfo.push(`Heat relief: ${heatRelief.toFixed(1)}`);
+  }
 
   // === Morning-Specific: Sonnen-Faktor ===
   if (isMorning) {
     const rad = input.radiationMorning;
     if (rad > 100) {
-      const radBonus = mapRange(rad, 100, 800, 0, 20);
-      score += clamp(radBonus, 0, 20);
+      const radBonus = mapRange(rad, 100, 800, 0, 25); // Erhöht von 20 auf 25!
+      const clampedRadBonus = clamp(radBonus, 0, 25);
+      score += clampedRadBonus;
+      debugInfo.push(`Morning sun (${rad.toFixed(0)} W/m²): +${clampedRadBonus.toFixed(1)}`);
     }
 
     // Luftfeuchte-Bonus für trockene Morgen
     const rh = input.relativeHumidityMorning;
     if (rh < 60) {
-      score += 8;
+      const humidityBonus = 10; // Erhöht von 8 auf 10!
+      score += humidityBonus;
+      debugInfo.push(`Low humidity (${rh.toFixed(0)}%): +${humidityBonus}`);
     }
   }
 
   // === Weidestand-Anpassungen anwenden ===
+  const preAdjustScore = score;
   score = score * pastureMultiplier + pastureOffset;
+  if (pastureMultiplier !== 1.0 || pastureOffset !== 0) {
+    debugInfo.push(`Pasture adj (${preAdjustScore.toFixed(1)} × ${pastureMultiplier.toFixed(2)} + ${pastureOffset})`);
+  }
 
   const final = Math.round(score);
-  return clamp(final, 0, 100);
+  const clampedFinal = clamp(final, 0, 100);
+  
+  // Log to console for debugging
+  console.log(`[SCORE ${slot}] ${clampedFinal} - ${debugInfo.join(' | ')}`);
+  
+  return clampedFinal;
 }
 
 /**
