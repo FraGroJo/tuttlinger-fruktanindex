@@ -29,25 +29,34 @@ export function HeatmapView({ days, className = "" }: HeatmapViewProps) {
   const getRiskColor = (level: string, score: number): string => {
     switch (level) {
       case "safe":
-        // Noch deutlichere Abstufungen innerhalb "Sicher" (0-29)
-        if (score <= 8) return "bg-green-200 hover:bg-green-300"; // Sehr niedrig
-        if (score <= 16) return "bg-green-300 hover:bg-green-400"; // Niedrig
-        if (score <= 24) return "bg-green-500 hover:bg-green-600"; // Mittel
-        return "bg-green-600 hover:bg-green-700"; // Grenzwertig
+        // Sehr deutliche Grün-Abstufungen (0-29)
+        if (score <= 8) return "bg-gradient-to-br from-emerald-100 to-emerald-200 text-emerald-900 border-2 border-emerald-300"; // Sehr niedrig
+        if (score <= 16) return "bg-gradient-to-br from-emerald-300 to-emerald-400 text-white border-2 border-emerald-500"; // Niedrig
+        if (score <= 24) return "bg-gradient-to-br from-green-500 to-green-600 text-white border-2 border-green-700"; // Mittel
+        return "bg-gradient-to-br from-green-700 to-green-800 text-white border-2 border-green-900"; // Grenzwertig
       case "moderate":
-        // Deutliche Abstufungen innerhalb "Erhöht" (30-59)
-        if (score <= 38) return "bg-yellow-300 hover:bg-yellow-400"; // Leicht erhöht
-        if (score <= 46) return "bg-yellow-500 hover:bg-yellow-600"; // Erhöht
-        if (score <= 54) return "bg-orange-500 hover:bg-orange-600"; // Stark erhöht
-        return "bg-orange-600 hover:bg-orange-700"; // Sehr stark erhöht
+        // Sehr deutliche Gelb/Orange-Abstufungen (30-59)
+        if (score <= 38) return "bg-gradient-to-br from-yellow-300 to-yellow-400 text-yellow-900 border-2 border-yellow-500"; // Leicht erhöht
+        if (score <= 46) return "bg-gradient-to-br from-yellow-500 to-yellow-600 text-white border-2 border-yellow-700"; // Erhöht
+        if (score <= 54) return "bg-gradient-to-br from-orange-500 to-orange-600 text-white border-2 border-orange-700"; // Stark erhöht
+        return "bg-gradient-to-br from-orange-700 to-orange-800 text-white border-2 border-orange-900"; // Sehr stark erhöht
       case "high":
-        // Deutliche Abstufungen innerhalb "Riskant" (≥60)
-        if (score <= 70) return "bg-red-500 hover:bg-red-600"; // Riskant
-        if (score <= 80) return "bg-red-600 hover:bg-red-700"; // Sehr riskant
-        if (score <= 90) return "bg-red-700 hover:bg-red-800"; // Extrem riskant
-        return "bg-red-900 hover:bg-red-950"; // Kritisch
+        // Sehr deutliche Rot-Abstufungen (≥60)
+        if (score <= 70) return "bg-gradient-to-br from-red-500 to-red-600 text-white border-2 border-red-700"; // Riskant
+        if (score <= 80) return "bg-gradient-to-br from-red-600 to-red-700 text-white border-2 border-red-800"; // Sehr riskant
+        if (score <= 90) return "bg-gradient-to-br from-red-700 to-red-800 text-white border-2 border-red-900"; // Extrem riskant
+        return "bg-gradient-to-br from-red-900 to-red-950 text-white border-2 border-black"; // Kritisch
       default:
-        return "bg-gray-300 hover:bg-gray-400";
+        return "bg-gray-200 text-gray-600 border-2 border-gray-400";
+    }
+  };
+
+  const getHoverEffect = (level: string): string => {
+    switch (level) {
+      case "safe": return "hover:scale-105 hover:shadow-lg hover:shadow-green-500/50";
+      case "moderate": return "hover:scale-105 hover:shadow-lg hover:shadow-orange-500/50";
+      case "high": return "hover:scale-105 hover:shadow-lg hover:shadow-red-500/50";
+      default: return "hover:scale-105";
     }
   };
 
@@ -89,15 +98,15 @@ export function HeatmapView({ days, className = "" }: HeatmapViewProps) {
         </div>
 
         {/* Heatmap Grid */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto bg-gradient-to-br from-muted/30 to-background p-4 rounded-lg">
           <div className="inline-block min-w-full">
             {/* Header Row */}
-            <div className="grid grid-cols-4 gap-2 mb-2">
+            <div className="grid grid-cols-4 gap-3 mb-3">
               <div className="text-xs font-medium text-muted-foreground"></div>
               {TIME_SLOTS.map(({ label }) => (
                 <div
                   key={label}
-                  className="text-xs font-medium text-center whitespace-pre-line"
+                  className="text-xs font-bold text-center whitespace-pre-line bg-primary/10 rounded-md py-2 px-1"
                 >
                   {label}
                 </div>
@@ -106,12 +115,12 @@ export function HeatmapView({ days, className = "" }: HeatmapViewProps) {
 
             {/* Data Rows */}
             {days.map((day, dayIndex) => (
-              <div key={day.date} className="grid grid-cols-4 gap-2 mb-2">
+              <div key={day.date} className="grid grid-cols-4 gap-3 mb-3">
                 {/* Date Label */}
-                <div className="flex items-center text-xs font-medium">
+                <div className="flex items-center text-xs font-bold bg-gradient-to-r from-primary/10 to-transparent rounded-md px-2 py-1">
                   <div>
-                    <div className="font-semibold">{day.date}</div>
-                    <div className="text-muted-foreground text-[10px]">
+                    <div className="font-black text-sm">{day.date}</div>
+                    <div className="text-muted-foreground text-[10px] font-normal">
                       {day.weekday}
                     </div>
                   </div>
@@ -139,32 +148,41 @@ export function HeatmapView({ days, className = "" }: HeatmapViewProps) {
                     <button
                       key={key}
                       onClick={() => setSelectedSlot({ day, slot: key })}
-                      className={`aspect-square rounded ${getRiskColor(
+                      className={`aspect-square rounded-lg ${getRiskColor(
                         slot.level,
                         slot.score
-                      )} transition-all cursor-pointer flex flex-col items-center justify-center text-white font-medium shadow-sm hover:shadow-md relative group`}
+                      )} ${getHoverEffect(slot.level)} transition-all duration-200 cursor-pointer flex flex-col items-center justify-center font-bold shadow-md relative group`}
                       title={`${day.date} ${key}: ${slot.score} (${slot.level})${trend ? `\nTrend: ${trend.diff > 0 ? '+' : ''}${trend.diff.toFixed(0)}` : ''}`}
                     >
-                      {/* Score */}
-                      <div className="text-lg font-bold">{Math.round(slot.score)}</div>
+                      {/* Score - größer und fetter */}
+                      <div className="text-2xl font-black drop-shadow-sm">
+                        {Math.round(slot.score)}
+                      </div>
                       
-                      {/* Temperatur */}
-                      <div className="text-[10px] opacity-90">
+                      {/* Temperatur - deutlicher */}
+                      <div className="text-xs font-semibold mt-0.5 drop-shadow-sm">
                         {(slot.tempSpectrum?.median || slot.temperature_spectrum?.median || 0).toFixed(0)}°C
                       </div>
 
-                      {/* Trend-Icon */}
+                      {/* Trend-Icon - größer und mit Hintergrund */}
                       {TrendIcon && (
-                        <div className="absolute top-0.5 right-0.5 opacity-70">
-                          <TrendIcon className="w-3 h-3" />
+                        <div className="absolute top-1 right-1 bg-black/20 rounded-full p-0.5 backdrop-blur-sm">
+                          <TrendIcon className="w-4 h-4 drop-shadow" />
                         </div>
                       )}
 
-                      {/* Intensitäts-Balken am unteren Rand */}
-                      <div 
-                        className="absolute bottom-0 left-0 right-0 h-1 bg-white/30 rounded-b"
-                        style={{ width: `${Math.min(100, (slot.score / 100) * 100)}%` }}
-                      />
+                      {/* Intensitäts-Balken - deutlicher */}
+                      <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-black/20 rounded-b-lg overflow-hidden">
+                        <div 
+                          className="h-full bg-white/60"
+                          style={{ width: `${Math.min(100, (slot.score / 100) * 100)}%` }}
+                        />
+                      </div>
+
+                      {/* Puls-Effekt bei hohem Score */}
+                      {slot.score >= 60 && (
+                        <div className="absolute inset-0 rounded-lg animate-pulse bg-white/10" />
+                      )}
                     </button>
                   );
                 })}
@@ -174,56 +192,62 @@ export function HeatmapView({ days, className = "" }: HeatmapViewProps) {
         </div>
 
         {/* Legend */}
-        <div className="mt-4 pt-4 border-t space-y-3">
+        <div className="mt-6 pt-4 border-t-2 space-y-4">
           {/* Farblegende */}
           <div>
-            <div className="text-xs font-semibold mb-2">Risiko-Abstufungen:</div>
+            <div className="text-sm font-bold mb-3 flex items-center gap-2">
+              <div className="w-1 h-5 bg-gradient-to-b from-primary to-primary/50 rounded" />
+              Risiko-Abstufungen
+            </div>
             <div className="flex flex-wrap gap-4 text-xs">
               <div className="flex items-center gap-2">
-                <div className="flex gap-0.5">
-                  <div className="w-3 h-4 rounded-l bg-green-200"></div>
-                  <div className="w-3 h-4 bg-green-300"></div>
-                  <div className="w-3 h-4 bg-green-500"></div>
-                  <div className="w-3 h-4 rounded-r bg-green-600"></div>
+                <div className="flex gap-1 shadow-md rounded-lg overflow-hidden">
+                  <div className="w-4 h-6 bg-gradient-to-br from-emerald-100 to-emerald-200 border-r border-emerald-300"></div>
+                  <div className="w-4 h-6 bg-gradient-to-br from-emerald-300 to-emerald-400 border-r border-emerald-500"></div>
+                  <div className="w-4 h-6 bg-gradient-to-br from-green-500 to-green-600 border-r border-green-700"></div>
+                  <div className="w-4 h-6 bg-gradient-to-br from-green-700 to-green-800"></div>
                 </div>
-                <span>Sicher (0-29)</span>
+                <span className="font-semibold">Sicher (0-29)</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="flex gap-0.5">
-                  <div className="w-3 h-4 rounded-l bg-yellow-300"></div>
-                  <div className="w-3 h-4 bg-yellow-500"></div>
-                  <div className="w-3 h-4 bg-orange-500"></div>
-                  <div className="w-3 h-4 rounded-r bg-orange-600"></div>
+                <div className="flex gap-1 shadow-md rounded-lg overflow-hidden">
+                  <div className="w-4 h-6 bg-gradient-to-br from-yellow-300 to-yellow-400 border-r border-yellow-500"></div>
+                  <div className="w-4 h-6 bg-gradient-to-br from-yellow-500 to-yellow-600 border-r border-yellow-700"></div>
+                  <div className="w-4 h-6 bg-gradient-to-br from-orange-500 to-orange-600 border-r border-orange-700"></div>
+                  <div className="w-4 h-6 bg-gradient-to-br from-orange-700 to-orange-800"></div>
                 </div>
-                <span>Erhöht (30-59)</span>
+                <span className="font-semibold">Erhöht (30-59)</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="flex gap-0.5">
-                  <div className="w-3 h-4 rounded-l bg-red-500"></div>
-                  <div className="w-3 h-4 bg-red-600"></div>
-                  <div className="w-3 h-4 bg-red-700"></div>
-                  <div className="w-3 h-4 rounded-r bg-red-900"></div>
+                <div className="flex gap-1 shadow-md rounded-lg overflow-hidden">
+                  <div className="w-4 h-6 bg-gradient-to-br from-red-500 to-red-600 border-r border-red-700"></div>
+                  <div className="w-4 h-6 bg-gradient-to-br from-red-600 to-red-700 border-r border-red-800"></div>
+                  <div className="w-4 h-6 bg-gradient-to-br from-red-700 to-red-800 border-r border-red-900"></div>
+                  <div className="w-4 h-6 bg-gradient-to-br from-red-900 to-red-950"></div>
                 </div>
-                <span>Riskant (≥60)</span>
+                <span className="font-semibold">Riskant (≥60)</span>
               </div>
             </div>
           </div>
 
           {/* Trend-Legende */}
           <div>
-            <div className="text-xs font-semibold mb-2">Trend-Indikatoren:</div>
+            <div className="text-sm font-bold mb-3 flex items-center gap-2">
+              <div className="w-1 h-5 bg-gradient-to-b from-primary to-primary/50 rounded" />
+              Trend-Indikatoren
+            </div>
             <div className="flex flex-wrap gap-4 text-xs">
-              <div className="flex items-center gap-1.5">
-                <TrendingUp className="w-3 h-3" />
-                <span>Steigend (+3)</span>
+              <div className="flex items-center gap-2 bg-green-50 px-3 py-1.5 rounded-md">
+                <TrendingUp className="w-4 h-4 text-green-600" />
+                <span className="font-semibold">Steigend (+3)</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <Minus className="w-3 h-3" />
-                <span>Stabil (±3)</span>
+              <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-md">
+                <Minus className="w-4 h-4 text-gray-600" />
+                <span className="font-semibold">Stabil (±3)</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <TrendingDown className="w-3 h-3" />
-                <span>Fallend (-3)</span>
+              <div className="flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-md">
+                <TrendingDown className="w-4 h-4 text-blue-600" />
+                <span className="font-semibold">Fallend (-3)</span>
               </div>
             </div>
           </div>
