@@ -188,6 +188,11 @@ function Step2Form({ onNext, onBack, initialData }: any) {
   const [hayAnalysis, setHayAnalysis] = useState<any>(null);
   const [useAnalysis, setUseAnalysis] = useState(true);
 
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm({
+    resolver: zodResolver(step2Schema),
+    defaultValues: initialData,
+  });
+
   // Lade Heuanalyse aus localStorage
   useEffect(() => {
     const stored = localStorage.getItem("hayAnalysis");
@@ -207,12 +212,7 @@ function Step2Form({ onNext, onBack, initialData }: any) {
     } else {
       setUseAnalysis(false);
     }
-  }, []);
-
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm({
-    resolver: zodResolver(step2Schema),
-    defaultValues: initialData,
-  });
+  }, [initialData, setValue]);
 
   return (
     <motion.form
