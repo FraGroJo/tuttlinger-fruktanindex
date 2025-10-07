@@ -9,6 +9,7 @@ import { TrendChart } from "@/components/TrendChart";
 import { MetadataBar } from "@/components/MetadataBar";
 import { CurrentConditions } from "@/components/CurrentConditions";
 import { PastureDataForm } from "@/components/PastureDataForm";
+import { HayAnalysisForm } from "@/components/HayAnalysisForm";
 import { HorseList } from "@/components/HorseList";
 import { TurnoutMatrix } from "@/components/TurnoutMatrix";
 import { useFruktanData } from "@/hooks/useFruktanData";
@@ -314,11 +315,16 @@ const Index = () => {
                 werden danach automatisch deaktiviert, bis neue Eingaben erfolgen.
               </p>
             </div>
-            <PastureDataForm
-              data={pastureData}
-              onChange={setPastureData}
-              onSave={handleSavePastureData}
-            />
+            
+            <div className="space-y-6">
+              <HayAnalysisForm />
+              
+              <PastureDataForm
+                data={pastureData}
+                onChange={setPastureData}
+                onSave={handleSavePastureData}
+              />
+            </div>
           </TabsContent>
 
           <TabsContent value="horses" className="space-y-6">

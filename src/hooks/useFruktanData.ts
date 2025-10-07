@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import { calculatePastureAdjustments, isPastureDataValid, type PastureData } from "@/types/pasture";
 import { type FruktanResponse, type DayMatrix, type TrendDataPoint, type LocationData, DEFAULT_LOCATION, type TemperatureSpectrum, type CurrentConditions, type RawWindowData, type SourceMetadata, type ParityHashes } from "@/types/fruktan";
 import { calculateScore, getRiskLevel, generateReason, type ScoringInput } from "@/lib/scoring";
+import { isHayAnalysisValid, calculateHayRiskMultiplier, type HayAnalysis } from "@/types/hay";
 
 // Cache-Interface
 interface CacheEntry {
@@ -254,7 +255,6 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
       sum + (hourlyData.et0_fao_evapotranspiration[idx] || 0), 0);
     const days7 = last7DaysHours.length / 24; // Umrechnung Stunden -> Tage
     const et0_7d_avg = days7 > 0 ? et0_7d_total / days7 : 0;
-    console.log(`[DAY MATRIX ${targetDateStr}] ET0 7d: total=${et0_7d_total.toFixed(2)}mm, days=${days7}, avg=${et0_7d_avg.toFixed(2)}mm/day, hours=${last7DaysHours.length}`);
     
     // 3-Tage Wind-Durchschnitt
     const threeDaysAgo = new Date(targetDate);
@@ -399,13 +399,41 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
         }
       }
       
-      const score = calculateScore(input, pastureMultiplier, pastureOffset);
+      // Heuanalyse-Anpassungen laden
+      const hayDataStr = localStorage.getItem("hayAnalysis");
+      let hayMultiplier = 1.0;
+      let hayOffset = 0;
+      let hayReasons: string[] = [];
+      
+      if (hayDataStr) {
+        try {
+          const hayData: HayAnalysis = JSON.parse(hayDataStr);
+          
+          if (isHayAnalysisValid(hayData)) {
+            const hayAdj = calculateHayRiskMultiplier(hayData);
+            hayMultiplier = hayAdj.multiplier;
+            hayOffset = hayAdj.offset;
+            hayReasons = hayAdj.reasons;
+          } else {
+            hayReasons.push("⚠️ Heuanalyse abgelaufen (>6 Monate alt)");
+          }
+        } catch (e) {
+          console.warn("Failed to parse hay analysis", e);
+        }
+      }
+      
+      // Kombiniere beide Multiplikatoren
+      const finalMultiplier = pastureMultiplier * hayMultiplier;
+      const finalOffset = pastureOffset + hayOffset;
+      const allReasons = [...pastureReasons, ...hayReasons];
+      
+      const score = calculateScore(input, finalMultiplier, finalOffset);
       const level = getRiskLevel(score, emsMode);
       let reason = generateReason(input, score);
       
-      // Weidestand-Gründe anhängen
-      if (pastureReasons.length > 0) {
-        reason += "\n\nWeidestand-Anpassungen: " + pastureReasons.join(", ");
+      // Anpassungs-Gründe anhängen
+      if (allReasons.length > 0) {
+        reason += "\n\nAnpassungen: " + allReasons.join(", ");
       }
       
       // Validierung
@@ -580,7 +608,6 @@ async function fetchTrendData(location: LocationData, emsMode: boolean): Promise
       sum + (hourlyData.et0_fao_evapotranspiration[idx] || 0), 0);
     const days7 = last7DaysHours.length / 24;
     const et0_7d_avg = days7 > 0 ? et0_7d_total / days7 : 0;
-    console.log(`[TREND ${hourlyTimes[i]}] ET0 7d: total=${et0_7d_total.toFixed(2)}mm, days=${days7}, avg=${et0_7d_avg.toFixed(2)}mm/day`);
     
     // 3-Tage Wind-Durchschnitt
     const threeDaysAgo = new Date(targetDate);
