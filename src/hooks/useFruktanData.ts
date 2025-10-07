@@ -152,15 +152,14 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
   }
 
   // Berechne Source Metadata
-  // Verwende aktuellen Zeitpunkt statt letzten Vorhersage-Timestamp
-  const lastForecastTimestamp = hourlyData.time[hourlyData.time.length - 1];
-  const dataAge = Math.round((now.getTime() - new Date(lastForecastTimestamp).getTime()) / 60000);
+  const dataTimestampLocal = hourlyData.time[hourlyData.time.length - 1];
+  const dataAge = Math.round((now.getTime() - new Date(dataTimestampLocal).getTime()) / 60000);
   
   const sourceMetadata: SourceMetadata = {
     provider: "open-meteo",
     model: "ECMWF", // Open-Meteo verwendet standardmäßig ECMWF
     model_run_time_utc: now.toISOString(),
-    data_timestamp_local: currentData.time, // Aktueller Zeitpunkt der Messung statt Vorhersage-Ende
+    data_timestamp_local: dataTimestampLocal,
   };
 
   // Sammle alle hourly Daten für Parity-Hash
