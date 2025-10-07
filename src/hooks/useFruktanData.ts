@@ -371,6 +371,7 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
         relativeHumidityMorning: rh_morning,
         et0_7d_avg,
         slot,
+        date: new Date(targetDateStr), // Datum für Jahreszeit-Anpassung
       };
       
       // Weidestand-Anpassungen laden (falls vorhanden und noch gültig)
@@ -610,6 +611,7 @@ async function fetchTrendData(location: LocationData, emsMode: boolean): Promise
       relativeHumidityMorning: relativeHumidity,
       et0_7d_avg,
       slot,
+      date: timestamp, // Datum für Jahreszeit-Anpassung
     };
     
     const score = calculateScore(input, 1.0, 0);

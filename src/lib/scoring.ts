@@ -1,9 +1,53 @@
 /**
  * Fruktan-Scoring-Logik
  * Implementiert die zentrale Berechnungslogik für das Fruktan-Risiko
+ * mit automatischer Anpassung an die Jahreszeit
  */
 
 import { SCORING_CONSTANTS, RISK_THRESHOLDS, type RiskLevel, type TimeSlot } from "@/types/fruktan";
+
+/**
+ * Bestimmt die Jahreszeit basierend auf dem Monat
+ */
+function getSeason(month: number): 'winter' | 'spring' | 'summer' | 'autumn' {
+  if (month >= 3 && month <= 5) return 'spring';
+  if (month >= 6 && month <= 8) return 'summer';
+  if (month >= 9 && month <= 11) return 'autumn';
+  return 'winter';
+}
+
+/**
+ * Gibt jahreszeitabhängige ET0-Schwellenwerte zurück
+ */
+function getSeasonalET0Thresholds(date: Date = new Date()) {
+  const month = date.getMonth(); // 0-11
+  const season = getSeason(month);
+  
+  switch (season) {
+    case 'summer':
+      return {
+        ET0_MIN: 3.0,
+        ET0_MAX: 6.0,
+        DRY_PRECIP_THRESHOLD: 5,
+        HEAT_ET0_THRESHOLD: 3.5,
+      };
+    case 'spring':
+    case 'autumn':
+      return {
+        ET0_MIN: 1.2,
+        ET0_MAX: 3.5,
+        DRY_PRECIP_THRESHOLD: 10,
+        HEAT_ET0_THRESHOLD: 2.0,
+      };
+    case 'winter':
+      return {
+        ET0_MIN: 0.5,
+        ET0_MAX: 2.0,
+        DRY_PRECIP_THRESHOLD: 15,
+        HEAT_ET0_THRESHOLD: 1.5,
+      };
+  }
+}
 
 /**
  * Hilfsfunktion: Lineare Interpolation (Map)
@@ -40,28 +84,31 @@ export function calculateCloudRelief(cloudCoverPercent: number): number {
 
 /**
  * Berechnet Trockenstress basierend auf ET0 und weiteren Faktoren
+ * Verwendet jahreszeitabhängige Schwellenwerte
  */
 export function calculateDrynessScore(
   et0_7d_avg: number,
   precip_7d_sum: number,
-  wind_3d_avg: number
+  wind_3d_avg: number,
+  date: Date = new Date()
 ): number {
   let score = 0;
+  const thresholds = getSeasonalET0Thresholds(date);
 
-  // ET0-basierter Score (Hauptfaktor)
-  if (et0_7d_avg >= SCORING_CONSTANTS.ET0_MIN) {
+  // ET0-basierter Score (Hauptfaktor) - mit dynamischen Schwellenwerten
+  if (et0_7d_avg >= thresholds.ET0_MIN) {
     const et0Score = mapRange(
       et0_7d_avg,
-      SCORING_CONSTANTS.ET0_MIN,
-      SCORING_CONSTANTS.ET0_MAX,
+      thresholds.ET0_MIN,
+      thresholds.ET0_MAX,
       0,
       SCORING_CONSTANTS.ET0_MAX_SCORE
     );
     score += clamp(et0Score, 0, SCORING_CONSTANTS.ET0_MAX_SCORE);
   }
 
-  // Niederschlags-Bonus
-  if (precip_7d_sum < SCORING_CONSTANTS.DRY_PRECIP_THRESHOLD) {
+  // Niederschlags-Bonus - mit jahreszeitabhängigem Schwellenwert
+  if (precip_7d_sum < thresholds.DRY_PRECIP_THRESHOLD) {
     score += SCORING_CONSTANTS.DRY_PRECIP_BONUS;
   }
 
@@ -75,16 +122,20 @@ export function calculateDrynessScore(
 
 /**
  * Berechnet Hitze-Entlastung (negativ bei hoher Temp + ausreichend Feuchtigkeit)
+ * Verwendet jahreszeitabhängige Schwellenwerte
  */
 export function calculateHeatRelief(
   tempMax: number,
   precip_7d_sum: number,
-  et0_7d_avg: number
+  et0_7d_avg: number,
+  date: Date = new Date()
 ): number {
+  const thresholds = getSeasonalET0Thresholds(date);
+  
   if (
     tempMax >= SCORING_CONSTANTS.HEAT_TEMP_THRESHOLD &&
     (precip_7d_sum >= SCORING_CONSTANTS.HEAT_PRECIP_THRESHOLD ||
-      et0_7d_avg <= SCORING_CONSTANTS.HEAT_ET0_THRESHOLD)
+      et0_7d_avg <= thresholds.HEAT_ET0_THRESHOLD)
   ) {
     return SCORING_CONSTANTS.HEAT_RELIEF;
   }
@@ -120,10 +171,12 @@ export interface ScoringInput {
   relativeHumidityMorning: number;
   et0_7d_avg: number;
   slot: TimeSlot;
+  date?: Date; // Optional: für jahreszeitabhängige Berechnungen
 }
 
 /**
  * Haupt-Scoring-Funktion für ein Zeitfenster
+ * Berücksichtigt automatisch die Jahreszeit
  */
 export function calculateScore(
   input: ScoringInput,
@@ -131,6 +184,7 @@ export function calculateScore(
   pastureOffset: number = 0
 ): number {
   const slot = input.slot;
+  const calcDate = input.date || new Date();
   let score = 20;
 
   const isMorning = slot === "morning";
@@ -145,8 +199,8 @@ export function calculateScore(
     score += coldBonus;
   }
 
-  // === Trockenheits-Stress (7d ET0 & Precip) ===
-  const dryScore = calculateDrynessScore(input.et0_7d_avg, input.precip_7d_sum, input.wind_3d_avg);
+  // === Trockenheits-Stress (7d ET0 & Precip) - mit Jahreszeitanpassung ===
+  const dryScore = calculateDrynessScore(input.et0_7d_avg, input.precip_7d_sum, input.wind_3d_avg, calcDate);
   const dryWeight = isMorning ? 1.0 : isNoon ? 0.5 : 0.3;
   score += dryScore * dryWeight;
 
@@ -160,8 +214,8 @@ export function calculateScore(
   const cloudRelief = calculateCloudRelief(input.cloudCoverSlot);
   score += cloudRelief;
 
-  // === Hitze-Relief ===
-  const heatRelief = calculateHeatRelief(input.tempMax, input.precip_7d_sum, input.et0_7d_avg);
+  // === Hitze-Relief - mit Jahreszeitanpassung ===
+  const heatRelief = calculateHeatRelief(input.tempMax, input.precip_7d_sum, input.et0_7d_avg, calcDate);
   score += heatRelief;
 
   // === Morning-Specific: Sonnen-Faktor ===
