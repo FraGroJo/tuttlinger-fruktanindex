@@ -30,14 +30,14 @@ const step1Schema = z.object({
 });
 
 const step2Schema = z.object({
-  hay_kg_as_fed_per_day: z.number().min(0).max(25),
-  hay_nsc_pct: z.number().min(4).max(20).optional(),
+  hay_kg_as_fed_per_day: z.number().min(0, "Muss mindestens 0 sein").max(25, "Maximal 25 kg"),
+  hay_nsc_pct: z.number().min(4, "NSC muss mindestens 4% sein").max(20, "NSC maximal 20%"),
   hay_analysis_ref_id: z.string().optional(),
 });
 
 const step3Schema = z.object({
-  conc_kg_as_fed_per_day: z.number().min(0).max(10).optional(),
-  conc_nsc_pct: z.number().min(5).max(45).optional(),
+  conc_kg_as_fed_per_day: z.number().min(0, "Muss mindestens 0 sein").max(10, "Maximal 10 kg").default(0),
+  conc_nsc_pct: z.number().min(5, "NSC muss mindestens 5% sein").max(45, "NSC maximal 45%").default(25),
 });
 
 export function HorseFormWizard({ onSubmit, onCancel, initialData }: HorseFormWizardProps) {
@@ -59,11 +59,20 @@ export function HorseFormWizard({ onSubmit, onCancel, initialData }: HorseFormWi
       ...formData,
       ...data,
       is_active: true,
+      // Sicherstellen dass Defaults gesetzt sind
+      conc_kg_as_fed_per_day: data.conc_kg_as_fed_per_day ?? 0,
+      conc_nsc_pct: data.conc_nsc_pct ?? 25,
     } as HorseMinimal;
     
     // ID nur bei Bearbeitung übernehmen
     if (initialData?.id) {
       finalData.id = initialData.id;
+    }
+    
+    // Validierung: hay_nsc_pct muss vorhanden sein
+    if (!finalData.hay_nsc_pct) {
+      console.error("hay_nsc_pct fehlt!", finalData);
+      return;
     }
     
     console.log("Final horse data:", finalData);
@@ -253,24 +262,26 @@ function Step2Form({ onNext, onBack, initialData }: any) {
         )}
       </div>
 
-      {(!hayAnalysis || !useAnalysis) && (
-        <div className="space-y-2">
-          <Label htmlFor="hay_nsc">Heu-NSC (%) *</Label>
-          <Input
-            id="hay_nsc"
-            type="number"
-            step="0.1"
-            {...register("hay_nsc_pct", { valueAsNumber: true })}
-            placeholder="4 - 20 (typisch: 8-12)"
-          />
+      <div className="space-y-2">
+        <Label htmlFor="hay_nsc">Heu-NSC (%) *</Label>
+        <Input
+          id="hay_nsc"
+          type="number"
+          step="0.1"
+          {...register("hay_nsc_pct", { valueAsNumber: true })}
+          placeholder="4 - 20 (typisch: 8-12)"
+          disabled={hayAnalysis && useAnalysis}
+          className={hayAnalysis && useAnalysis ? "bg-muted" : ""}
+        />
+        {(!hayAnalysis || !useAnalysis) && (
           <p className="text-xs text-muted-foreground">
             Laden Sie eine Heuanalyse hoch (Reiter "Weidestand"), um diesen Wert automatisch zu berechnen.
           </p>
-          {errors.hay_nsc_pct && (
-            <p className="text-sm text-destructive">{errors.hay_nsc_pct.message as string}</p>
-          )}
-        </div>
-      )}
+        )}
+        {errors.hay_nsc_pct && (
+          <p className="text-sm text-destructive">{errors.hay_nsc_pct.message as string}</p>
+        )}
+      </div>
 
       <div className="flex gap-3 pt-4">
         <Button type="button" variant="outline" onClick={onBack} className="flex-1">

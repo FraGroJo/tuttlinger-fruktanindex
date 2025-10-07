@@ -124,10 +124,10 @@ export function TurnoutMatrix({ recommendations, horses, date }: TurnoutMatrixPr
 function getColorForLevel(level: "safe" | "moderate" | "high"): string {
   switch (level) {
     case "safe":
-      return "bg-green-500";
+      return "bg-[hsl(var(--chart-2))]"; // Grün aus Design-System
     case "moderate":
-      return "bg-yellow-500";
+      return "bg-[hsl(var(--chart-3))]"; // Gelb/Orange aus Design-System
     case "high":
-      return "bg-red-500";
+      return "bg-[hsl(var(--chart-1))]"; // Rot aus Design-System
   }
 }
