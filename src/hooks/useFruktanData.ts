@@ -8,7 +8,6 @@ import { useState, useEffect } from "react";
 import { calculatePastureAdjustments, isPastureDataValid, type PastureData } from "@/types/pasture";
 import { type FruktanResponse, type DayMatrix, type TrendDataPoint, type LocationData, DEFAULT_LOCATION, type TemperatureSpectrum, type CurrentConditions, type RawWindowData, type SourceMetadata, type ParityHashes } from "@/types/fruktan";
 import { calculateScore, getRiskLevel, generateReason, type ScoringInput } from "@/lib/scoring";
-import { isHayAnalysisValid, calculateHayRiskMultiplier, type HayAnalysis } from "@/types/hay";
 import { apiClient, type APIResponse } from "@/lib/apiClient";
 import { toast } from "@/hooks/use-toast";
 
@@ -413,41 +412,17 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
         }
       }
       
-      // Heuanalyse-Anpassungen laden
-      const hayDataStr = localStorage.getItem("hayAnalysis");
-      let hayMultiplier = 1.0;
-      let hayOffset = 0;
-      let hayReasons: string[] = [];
+      // WICHTIG: Heuanalyse beeinflusst NICHT den globalen Weide-Score
+      // Heu wird im Stall gefüttert, nicht auf der Weide!
+      // Heu-NSC reduziert nur das NSC-Budget bei der Pferde-Weidezeit-Berechnung
       
-      if (hayDataStr) {
-        try {
-          const hayData: HayAnalysis = JSON.parse(hayDataStr);
-          
-          if (isHayAnalysisValid(hayData)) {
-            const hayAdj = calculateHayRiskMultiplier(hayData);
-            hayMultiplier = hayAdj.multiplier;
-            hayOffset = hayAdj.offset;
-            hayReasons = hayAdj.reasons;
-          } else {
-            hayReasons.push("⚠️ Heuanalyse abgelaufen (>6 Monate alt)");
-          }
-        } catch (e) {
-          console.warn("Failed to parse hay analysis", e);
-        }
-      }
-      
-      // Kombiniere beide Multiplikatoren
-      const finalMultiplier = pastureMultiplier * hayMultiplier;
-      const finalOffset = pastureOffset + hayOffset;
-      const allReasons = [...pastureReasons, ...hayReasons];
-      
-      const score = calculateScore(input, finalMultiplier, finalOffset);
+      const score = calculateScore(input, pastureMultiplier, pastureOffset);
       const level = getRiskLevel(score, emsMode);
       let reason = generateReason(input, score);
       
-      // Anpassungs-Gründe anhängen
-      if (allReasons.length > 0) {
-        reason += "\n\nAnpassungen: " + allReasons.join(", ");
+      // Anpassungs-Gründe anhängen (nur Weidestand)
+      if (pastureReasons.length > 0) {
+        reason += "\n\nWeidestand-Anpassungen: " + pastureReasons.join(", ");
       }
       
       // Validierung
@@ -583,27 +558,11 @@ async function fetchTrendData(location: LocationData, emsMode: boolean): Promise
     }
   }
   
-  // Lade Heuanalyse-Anpassungen (identisch zu fetchWeatherData)
-  const hayDataStr = localStorage.getItem("hayAnalysis");
-  let hayMultiplier = 1.0;
-  let hayOffset = 0;
+  // WICHTIG: Heuanalyse beeinflusst NICHT den globalen Weide-Score im Trend
+  // Nur Weidestand-Anpassungen werden berücksichtigt
   
-  if (hayDataStr) {
-    try {
-      const hayData: HayAnalysis = JSON.parse(hayDataStr);
-      if (isHayAnalysisValid(hayData)) {
-        const hayAdj = calculateHayRiskMultiplier(hayData);
-        hayMultiplier = hayAdj.multiplier;
-        hayOffset = hayAdj.offset;
-      }
-    } catch (e) {
-      console.warn("Failed to parse hay analysis in trend", e);
-    }
-  }
-  
-  // Kombiniere beide Anpassungen
-  const finalMultiplier = pastureMultiplier * hayMultiplier;
-  const finalOffset = pastureOffset + hayOffset;
+  const finalMultiplier = pastureMultiplier;
+  const finalOffset = pastureOffset;
   
   const params = new URLSearchParams({
     latitude: lat.toString(),
