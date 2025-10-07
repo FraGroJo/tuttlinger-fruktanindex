@@ -174,12 +174,21 @@ const Index = () => {
   };
 
   const getTurnoutRecommendations = () => {
-    if (!data) return [];
+    if (!data) {
+      console.log("getTurnoutRecommendations: No data available");
+      return [];
+    }
     
     const dayData = getDayDataByDate(selectedDate);
-    if (!dayData) return [];
+    if (!dayData) {
+      console.log("getTurnoutRecommendations: No dayData for", selectedDate);
+      return [];
+    }
 
-    return activeHorses.flatMap((horse) =>
+    console.log("Active horses:", activeHorses);
+    console.log("Day data:", dayData);
+
+    const recommendations = activeHorses.flatMap((horse) =>
       calculateAllTurnouts(
         horse,
         {
@@ -190,6 +199,9 @@ const Index = () => {
         DEFAULT_PASTURE_CONFIG
       )
     );
+    
+    console.log("Turnout recommendations:", recommendations);
+    return recommendations;
   };
 
   if (loading) {
@@ -371,6 +383,11 @@ const Index = () => {
             </div>
 
             <HorseList />
+
+            {(() => {
+              console.log("Checking display condition - activeHorses:", activeHorses.length, "data:", !!data);
+              return null;
+            })()}
 
             {activeHorses.length > 0 && data && (
               <>
