@@ -9,6 +9,8 @@ import { calculatePastureAdjustments, isPastureDataValid, type PastureData } fro
 import { type FruktanResponse, type DayMatrix, type TrendDataPoint, type LocationData, DEFAULT_LOCATION, type TemperatureSpectrum, type CurrentConditions, type RawWindowData, type SourceMetadata, type ParityHashes } from "@/types/fruktan";
 import { calculateScore, getRiskLevel, generateReason, type ScoringInput } from "@/lib/scoring";
 import { isHayAnalysisValid, calculateHayRiskMultiplier, type HayAnalysis } from "@/types/hay";
+import { apiClient, type APIResponse } from "@/lib/apiClient";
+import { toast } from "@/hooks/use-toast";
 
 // Cache-Interface
 interface CacheEntry {
@@ -704,6 +706,10 @@ export function useFruktanData(emsMode: boolean, location: LocationData = DEFAUL
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isInitialMount, setIsInitialMount] = useState(true);
+  const [dataIntegrity, setDataIntegrity] = useState<'ok' | 'degraded'>('ok');
+  const [apiSyncError, setApiSyncError] = useState(false);
+  const [serviceUnavailable, setServiceUnavailable] = useState(false);
+  const [dataSource, setDataSource] = useState('Open-Meteo (ECMWF)');
 
   useEffect(() => {
     // Cache-Key basierend auf Location und EMS-Modus
@@ -754,5 +760,14 @@ export function useFruktanData(emsMode: boolean, location: LocationData = DEFAUL
       });
   }, [emsMode, location.lat, location.lon, location.name]);
 
-  return { data, trendData, loading, error };
+  return { 
+    data, 
+    trendData, 
+    loading, 
+    error, 
+    dataIntegrity,
+    apiSyncError,
+    serviceUnavailable,
+    dataSource 
+  };
 }

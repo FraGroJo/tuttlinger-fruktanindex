@@ -12,6 +12,7 @@ import { PastureDataForm } from "@/components/PastureDataForm";
 import { HayAnalysisForm } from "@/components/HayAnalysisForm";
 import { HorseList } from "@/components/HorseList";
 import { TurnoutMatrix } from "@/components/TurnoutMatrix";
+import { DataQualityBanner } from "@/components/DataQualityBanner";
 import { useFruktanData } from "@/hooks/useFruktanData";
 import { useHorses } from "@/hooks/useHorses";
 import { Loader2, Download, FileText } from "lucide-react";
@@ -31,7 +32,16 @@ const Index = () => {
   const [pastureData, setPastureData] = useState<PastureData>(DEFAULT_PASTURE_DATA);
   const [activeTab, setActiveTab] = useState<string>("matrix");
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split("T")[0]);
-  const { data, trendData, loading, error } = useFruktanData(true, location);
+  const { 
+    data, 
+    trendData, 
+    loading, 
+    error, 
+    dataIntegrity = 'ok',
+    apiSyncError = false,
+    serviceUnavailable = false,
+    dataSource = 'Open-Meteo (ECMWF)'
+  } = useFruktanData(true, location);
   const { horses, activeHorses } = useHorses();
   const { toast } = useToast();
 
@@ -225,6 +235,14 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="matrix" className="space-y-4 sm:space-y-6 md:space-y-8">
+            {/* Data Quality Banner */}
+            <DataQualityBanner
+              integrity={dataIntegrity}
+              apiSyncError={apiSyncError}
+              serviceUnavailable={serviceUnavailable}
+              source={dataSource}
+            />
+
             {/* Current Conditions */}
             {data.current && (
               <section className="animate-fade-in">

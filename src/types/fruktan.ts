@@ -233,4 +233,7 @@ export interface LocationData {
   name: string;
   lat: number;
   lon: number;
+  latitude?: number;  // Alias für lat
+  longitude?: number; // Alias für lon
+  timezone?: string;
 }
