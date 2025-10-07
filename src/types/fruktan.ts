@@ -15,13 +15,13 @@ export const SCORING_CONSTANTS = {
   FROST_BONUS: 30,
   COLD_BONUS: 15,
   
-  // ET0-basierter Trockenstress
-  ET0_MIN: 3.0,
-  ET0_MAX: 6.0,
+  // ET0-basierter Trockenstress (angepasst für ganzjährige Nutzung)
+  ET0_MIN: 1.5,  // Reduziert von 3.0 - auch im Herbst/Frühling relevant
+  ET0_MAX: 4.0,  // Reduziert von 6.0 - realistischer für gemäßigtes Klima
   ET0_MAX_SCORE: 15,
   
   // Zusätzliche Trockenstress-Faktoren
-  DRY_PRECIP_THRESHOLD: 5,
+  DRY_PRECIP_THRESHOLD: 10,  // Erhöht von 5 - realistischer für 7-Tage-Summe
   DRY_PRECIP_BONUS: 5,
   WIND_THRESHOLD: 6,
   WIND_BONUS: 5,
@@ -41,7 +41,7 @@ export const SCORING_CONSTANTS = {
   // Hitze-Entlastung
   HEAT_TEMP_THRESHOLD: 28,
   HEAT_PRECIP_THRESHOLD: 15,
-  HEAT_ET0_THRESHOLD: 3.5,
+  HEAT_ET0_THRESHOLD: 2.5,  // Reduziert von 3.5 - aktiviert Entlastung früher
   HEAT_RELIEF: -10,
   
   // Morgen-spezifisch
