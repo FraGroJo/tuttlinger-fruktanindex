@@ -1,18 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { PastureData, DEFAULT_PASTURE_DATA, isPastureDataValid, getDaysUntilExpiry, PLANT_SPECIES, PlantSpecies } from "@/types/pasture";
-import { HayAnalysis, isHayAnalysisValid } from "@/types/hay";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Save, RotateCcw, Calendar, AlertTriangle, CheckCircle2, Sparkles, FileText, Upload, Trash2 } from "lucide-react";
+import { Save, RotateCcw, Calendar, AlertTriangle, CheckCircle2, Sparkles } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { Input } from "@/components/ui/input";
 
 interface PastureDataFormProps {
   data: PastureData;
@@ -21,20 +18,6 @@ interface PastureDataFormProps {
 }
 
 export function PastureDataForm({ data, onChange, onSave }: PastureDataFormProps) {
-  const [hayData, setHayData] = useState<HayAnalysis | null>(null);
-  const [uploadingFile, setUploadingFile] = useState(false);
-
-  // Lade gespeicherte Heuanalyse
-  useEffect(() => {
-    const stored = localStorage.getItem("hayAnalysis");
-    if (stored) {
-      try {
-        setHayData(JSON.parse(stored) as HayAnalysis);
-      } catch (e) {
-        console.warn("Failed to parse hay analysis", e);
-      }
-    }
-  }, []);
 
   const handleReset = () => {
     onChange(DEFAULT_PASTURE_DATA);
@@ -64,54 +47,6 @@ export function PastureDataForm({ data, onChange, onSave }: PastureDataFormProps
     updateField("presentSpecies", updated);
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.type !== "application/pdf") {
-      toast({
-        title: "Ungültiger Dateityp",
-        description: "Bitte laden Sie eine PDF-Datei hoch (LUFA-Analysebericht)",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setUploadingFile(true);
-    toast({
-      title: "Datei wird verarbeitet...",
-      description: "Bitte warten Sie, während die Analyse ausgelesen wird.",
-    });
-
-    try {
-      // Hier würde die PDF-Parsing-Logik kommen
-      // Vorerst: Manuelle Eingabe weiterhin erforderlich
-      toast({
-        title: "Upload erfolgreich",
-        description: "Bitte überprüfen und vervollständigen Sie die Analysewerte",
-      });
-    } catch (error) {
-      toast({
-        title: "Fehler beim Hochladen",
-        description: "Die Datei konnte nicht verarbeitet werden",
-        variant: "destructive",
-      });
-    } finally {
-      setUploadingFile(false);
-      e.target.value = "";
-    }
-  };
-
-  const handleDeleteHayAnalysis = () => {
-    localStorage.removeItem("hayAnalysis");
-    setHayData(null);
-    toast({
-      title: "Heuanalyse gelöscht",
-      description: "Die Daten wurden entfernt",
-    });
-  };
-
-  const hayIsValid = hayData ? isHayAnalysisValid(hayData) : false;
 
   const isValid = isPastureDataValid(data);
   const daysRemaining = getDaysUntilExpiry(data);
@@ -196,108 +131,6 @@ export function PastureDataForm({ data, onChange, onSave }: PastureDataFormProps
         </CardContent>
       </Card>
 
-      {/* Heuanalyse-Sektion */}
-      <Card className="border-orange-200 bg-orange-50/50 dark:bg-orange-950/10">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <FileText className="w-5 h-5" />
-            Heuanalyse (Optional)
-          </CardTitle>
-          <CardDescription>
-            Für präzisere Weidezeit-Berechnungen bei Offenstall-Pferden
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {hayData ? (
-            <>
-              {/* Heuanalyse-Status */}
-              <Alert variant={hayIsValid ? "default" : "destructive"}>
-                {hayIsValid ? (
-                  <CheckCircle2 className="h-4 w-4" />
-                ) : (
-                  <AlertTriangle className="h-4 w-4" />
-                )}
-                <AlertTitle>
-                  {hayIsValid ? "Heuanalyse aktiv" : "Heuanalyse abgelaufen"}
-                </AlertTitle>
-                <AlertDescription>
-                  {hayIsValid ? (
-                    <>
-                      Bericht: <strong>{hayData.reportNumber}</strong> ({hayData.sampleName})
-                      <br />
-                      Fruktan: <strong>{hayData.fruktan.toFixed(1)}%</strong>, 
-                      Zucker: <strong>{hayData.gesamtzucker.toFixed(1)}%</strong>
-                      <br />
-                      <span className="text-xs text-muted-foreground">
-                        Gültig bis: {new Date(hayData.validUntil).toLocaleDateString('de-DE')}
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      Die Analyse ist älter als 6 Monate und wird nicht mehr berücksichtigt.
-                      Bitte laden Sie eine neue Analyse hoch.
-                    </>
-                  )}
-                </AlertDescription>
-              </Alert>
-
-              {/* Aktionen */}
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDeleteHayAnalysis}
-                  className="flex-1"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Analyse löschen
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => document.getElementById('hay-upload')?.click()}
-                  className="flex-1"
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  Neue hochladen
-                </Button>
-              </div>
-            </>
-          ) : (
-            <>
-              {/* Kein Upload vorhanden */}
-              <div className="text-center py-6 space-y-4">
-                <div className="text-sm text-muted-foreground">
-                  Keine Heuanalyse vorhanden
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => document.getElementById('hay-upload')?.click()}
-                  disabled={uploadingFile}
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  {uploadingFile ? "Wird verarbeitet..." : "LUFA-Bericht hochladen (PDF)"}
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  Nach dem Upload können Sie die Werte überprüfen und speichern
-                </p>
-              </div>
-            </>
-          )}
-
-          {/* Verstecktes File-Input */}
-          <input
-            id="hay-upload"
-            type="file"
-            accept="application/pdf"
-            onChange={handleFileUpload}
-            className="hidden"
-          />
-        </CardContent>
-      </Card>
 
       {/* Wachstumsbedingungen */}
       <Card>
