@@ -3,7 +3,7 @@
  * 3-Schritt-Wizard für Pferde-Eingabe
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -185,7 +185,31 @@ function Step1Form({ onNext, onCancel, initialData }: any) {
 
 // Step 2: Heu
 function Step2Form({ onNext, onBack, initialData }: any) {
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const [hayAnalysis, setHayAnalysis] = useState<any>(null);
+  const [useAnalysis, setUseAnalysis] = useState(true);
+
+  // Lade Heuanalyse aus localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem("hayAnalysis");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setHayAnalysis(parsed);
+        
+        // Automatisch NSC berechnen aus Heuanalyse (NSC ≈ Fruktan + Zucker)
+        if (!initialData?.hay_nsc_pct) {
+          const calculatedNSC = parsed.fruktan + parsed.gesamtzucker;
+          setValue("hay_nsc_pct", calculatedNSC);
+        }
+      } catch (e) {
+        console.warn("Failed to load hay analysis", e);
+      }
+    } else {
+      setUseAnalysis(false);
+    }
+  }, []);
+
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm({
     resolver: zodResolver(step2Schema),
     defaultValues: initialData,
   });
@@ -198,6 +222,17 @@ function Step2Form({ onNext, onBack, initialData }: any) {
       onSubmit={handleSubmit(onNext)}
       className="space-y-6"
     >
+      {hayAnalysis && useAnalysis && (
+        <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
+          <p className="text-sm font-medium text-primary mb-1">
+            ✓ Heuanalyse aktiv: {hayAnalysis.sampleName}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            NSC berechnet aus Fruktan ({hayAnalysis.fruktan.toFixed(1)}%) + Zucker ({hayAnalysis.gesamtzucker.toFixed(1)}%) = {(hayAnalysis.fruktan + hayAnalysis.gesamtzucker).toFixed(1)}%
+          </p>
+        </div>
+      )}
+
       <div className="space-y-2">
         <Label htmlFor="hay_kg">Heu (kg Frischmasse/Tag) *</Label>
         <Input
@@ -212,22 +247,24 @@ function Step2Form({ onNext, onBack, initialData }: any) {
         )}
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="hay_nsc">Heu-NSC (%) *</Label>
-        <Input
-          id="hay_nsc"
-          type="number"
-          step="0.1"
-          {...register("hay_nsc_pct", { valueAsNumber: true })}
-          placeholder="4 - 20 (typisch: 8-12)"
-        />
-        <p className="text-xs text-muted-foreground">
-          Alternativ: Heuanalyse-Referenz (noch nicht implementiert)
-        </p>
-        {errors.hay_nsc_pct && (
-          <p className="text-sm text-destructive">{errors.hay_nsc_pct.message as string}</p>
-        )}
-      </div>
+      {(!hayAnalysis || !useAnalysis) && (
+        <div className="space-y-2">
+          <Label htmlFor="hay_nsc">Heu-NSC (%) *</Label>
+          <Input
+            id="hay_nsc"
+            type="number"
+            step="0.1"
+            {...register("hay_nsc_pct", { valueAsNumber: true })}
+            placeholder="4 - 20 (typisch: 8-12)"
+          />
+          <p className="text-xs text-muted-foreground">
+            Laden Sie eine Heuanalyse hoch (Reiter "Weidestand"), um diesen Wert automatisch zu berechnen.
+          </p>
+          {errors.hay_nsc_pct && (
+            <p className="text-sm text-destructive">{errors.hay_nsc_pct.message as string}</p>
+          )}
+        </div>
+      )}
 
       <div className="flex gap-3 pt-4">
         <Button type="button" variant="outline" onClick={onBack} className="flex-1">
