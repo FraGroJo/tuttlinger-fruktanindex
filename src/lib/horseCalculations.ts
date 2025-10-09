@@ -5,7 +5,8 @@
 import type { HorseMinimal, PastureConfigMinimal, TurnoutRecommendation, ScoreToNSCMapping } from "@/types/horse";
 import type { RiskLevel } from "@/types/fruktan";
 
-const HEU_DM_PCT = 88; // Standard Trockensubstanz-Gehalt Heu
+const HEU_DM_PCT = 89.7; // LUFA 25FG008305: 89.7% Trockensubstanz
+const HEU_NSC_PCT = 18.3; // LUFA 25FG008305: 18.3% NSC (wasserlösliche Kohlenhydrate)
 
 /**
  * Mappt Score zu Weide-NSC %
@@ -58,7 +59,7 @@ export function calculateTurnoutForWindow(
 
   // 2) NSC-Grundlast aus Ration
   const hay_dm = horse.hay_kg_as_fed_per_day * (HEU_DM_PCT / 100);
-  const heu_nsc_pct = horse.hay_nsc_pct || 10; // Fallback
+  const heu_nsc_pct = horse.hay_nsc_pct !== undefined ? horse.hay_nsc_pct : HEU_NSC_PCT;
   const hay_nsc_g = hay_dm * (heu_nsc_pct / 100) * 1000;
 
   const conc_kg = horse.conc_kg_as_fed_per_day || 0;

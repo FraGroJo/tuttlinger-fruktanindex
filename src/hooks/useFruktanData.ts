@@ -107,7 +107,7 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
   const { lat, lon } = location;
   const now = new Date();
   
-  // Open-Meteo API URL mit allen benötigten Parametern
+  // ECMWF API URL (Open-Meteo) mit allen benötigten Parametern
   const params = new URLSearchParams({
     latitude: lat.toString(),
     longitude: lon.toString(),
@@ -117,9 +117,10 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
     daily: "temperature_2m_max,temperature_2m_min",
     past_days: "3",
     forecast_days: "7",
+    model: "ecmwf", // Wichtig: ECMWF-Modell explizit anfordern
   });
 
-  const url = `https://api.open-meteo.com/v1/forecast?${params}`;
+  const url = `https://api.open-meteo.com/v1/ecmwf?${params}`;
   const response = await fetch(url, { cache: 'no-store' });
   
   if (!response.ok) {
@@ -571,9 +572,10 @@ async function fetchTrendData(location: LocationData, emsMode: boolean): Promise
     hourly: "temperature_2m,relative_humidity_2m,shortwave_radiation,cloud_cover,wind_speed_10m,precipitation,et0_fao_evapotranspiration",
     past_days: "3",
     forecast_days: "7",
+    model: "ecmwf", // ECMWF-Modell explizit
   });
 
-  const url = `https://api.open-meteo.com/v1/forecast?${params}`;
+  const url = `https://api.open-meteo.com/v1/ecmwf?${params}`;
   const response = await fetch(url, { cache: 'no-store' });
   
   if (!response.ok) {
