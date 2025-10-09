@@ -140,3 +140,10 @@ validationLogger.log(
   'V21.1: Hybrid-Quelle überall korrekt gelabelt · Datenintegrität 100 % | buildSourceBadge() als SSOT implementiert | Konsistenz-Wächter (S1-S3) aktiv | Alle Views einheitlich: 🟢 DWD ICON-D2 / 🟡 ECMWF [Fallback] / 🔵 ECMWF',
   'ok'
 );
+
+// Log V23 - Adaptiver Zoom für Temperatur-Spektrum
+validationLogger.log(
+  'ui',
+  'V23: Dual-Layer Temperatur-Spektrum aktiviert – Fix-Skala (-10…30°C) + adaptiver Zoom | Min/Med/Max auch bei 0,9°C klar sichtbar | Größere Marker (3-4px), dynamische Ticks, Leader-Lines | Vergleichbarkeit erhalten | 100 % konsistent',
+  'ok'
+);
