@@ -6,6 +6,7 @@
 import { logger } from './logger';
 import { dataValidator } from './dataValidator';
 import { weatherApiClient } from './weatherApiClient';
+import { computeConfidence, type ConfidenceBreakdown } from './quality';
 import type { FruktanResponse } from '@/types/fruktan';
 
 export interface MonitoringReport {
@@ -13,7 +14,10 @@ export interface MonitoringReport {
   status: 'ok' | 'warning' | 'error';
   source: string;
   fallbackActive: boolean;
-  confidence: 'normal' | 'low';
+  confidence: 'normal' | 'low'; // Legacy string field
+  confidenceScore: number; // NEW: Dynamic 0-100 score
+  confidenceBreakdown: ConfidenceBreakdown; // NEW: Detailed breakdown
+  confidenceByDay: number[]; // NEW: Confidence per day (0-6)
   metrics: {
     avgTemperature: number;
     avgHumidity: number;
@@ -104,7 +108,64 @@ class MonitoringSystem {
       // 4. Vergleich mit letztem Datensatz
       const deltas = this.calculateDeltas(currentData);
 
-      // 5. Prüfe ob Auto-Healing nötig
+      // 5. Berechne dynamischen Confidence-Score (global)
+      const dataAge = Math.round((Date.now() - new Date(response.timestamp).getTime()) / 60000);
+      const expectedHours = 240;
+      const availableHours = currentData.hourly?.time?.length || 0;
+      
+      // Berechne Modell-Deltas falls verfügbar
+      let deltaT = 0;
+      let deltaRH = 0;
+      let deltaRad = 0;
+      
+      if (this.lastData?.hourly) {
+        const curr = currentData.hourly;
+        const prev = this.lastData.hourly;
+        const compareLen = Math.min(24, curr.temperature_2m?.length || 0, prev.temperature_2m?.length || 0);
+        
+        if (compareLen > 0) {
+          let tSum = 0, rhSum = 0, radSum = 0;
+          for (let i = 0; i < compareLen; i++) {
+            tSum += Math.abs((curr.temperature_2m[i] || 0) - (prev.temperature_2m[i] || 0));
+            rhSum += Math.abs((curr.relative_humidity_2m[i] || 0) - (prev.relative_humidity_2m[i] || 0));
+            radSum += Math.abs((curr.shortwave_radiation[i] || 0) - (prev.shortwave_radiation[i] || 0));
+          }
+          deltaT = tSum / compareLen;
+          deltaRH = rhSum / compareLen;
+          deltaRad = radSum / compareLen;
+        }
+      }
+      
+      const globalConfidence = computeConfidence({
+        model: response.source as "ICON-D2" | "ECMWF",
+        fallbackUsed: response.fallbackUsed || false,
+        ageMinutes: dataAge,
+        expectedHours,
+        availableHours,
+        deltaT,
+        deltaRH,
+        deltaRad,
+        dayOffset: 0, // Global = heute
+        hadValidationWarn: validation.warnings.length > 0,
+      });
+      
+      // Berechne Confidence pro Tag (0-6)
+      const confidenceByDay = Array.from({ length: 7 }, (_, dayOffset) => {
+        return computeConfidence({
+          model: response.source as "ICON-D2" | "ECMWF",
+          fallbackUsed: response.fallbackUsed || false,
+          ageMinutes: dataAge,
+          expectedHours,
+          availableHours,
+          deltaT,
+          deltaRH,
+          deltaRad,
+          dayOffset,
+          hadValidationWarn: validation.warnings.length > 0,
+        }).score;
+      });
+
+      // 6. Prüfe ob Auto-Healing nötig
       const autoHealingNeeded = this.checkAutoHealingNeeded(deltas, validation);
       let autoHealingTriggered = false;
 
@@ -112,13 +173,16 @@ class MonitoringSystem {
         autoHealingTriggered = await this.autoHealSystem();
       }
 
-      // 6. Erstelle Report
+      // 7. Erstelle Report
       const report: MonitoringReport = {
         timestamp,
         status: validation.valid ? (validation.warnings.length > 0 ? 'warning' : 'ok') : 'error',
         source: response.source,
         fallbackActive: response.fallbackUsed || false,
-        confidence: validation.confidence || 'normal',
+        confidence: globalConfidence.score >= 75 ? 'normal' : 'low', // Legacy field
+        confidenceScore: globalConfidence.score,
+        confidenceBreakdown: globalConfidence,
+        confidenceByDay,
         metrics: {
           avgTemperature: metrics.avgTemp,
           avgHumidity: metrics.avgHumidity,
@@ -146,17 +210,20 @@ class MonitoringSystem {
         logger.info('monitoring_cycle_complete', {
           status: 'VALIDATED',
           model: response.source,
-          confidence: report.confidence,
+          confidenceScore: report.confidenceScore,
+          confidenceByDay: report.confidenceByDay,
         }, 'system');
       } else if (report.status === 'warning') {
         logger.warn('monitoring_cycle_warnings', {
           warnings: validation.warnings,
           model: response.source,
+          confidenceScore: report.confidenceScore,
         }, 'system');
       } else {
         logger.error('monitoring_cycle_failed', {
           errors: validation.errors,
           model: response.source,
+          confidenceScore: report.confidenceScore,
         }, 'system');
       }
 
@@ -173,6 +240,19 @@ class MonitoringSystem {
         source: 'unknown',
         fallbackActive: false,
         confidence: 'low',
+        confidenceScore: 0,
+        confidenceBreakdown: {
+          score: 0,
+          factors: {
+            completeness: { penalty: 100, reason: 'Fehler beim Laden' },
+            freshness: { penalty: 0, reason: '' },
+            fallback: { penalty: 0, reason: '' },
+            consistency: { penalty: 0, reason: '' },
+            horizon: { penalty: 0, reason: '' },
+            validation: { penalty: 0, reason: '' },
+          },
+        },
+        confidenceByDay: [0, 0, 0, 0, 0, 0, 0],
         metrics: {
           avgTemperature: 0,
           avgHumidity: 0,

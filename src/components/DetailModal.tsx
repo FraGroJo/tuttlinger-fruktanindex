@@ -29,7 +29,9 @@ import {
   Info,
 } from "lucide-react";
 import { TemperatureSpectrum } from "./TemperatureSpectrum";
+import { ConfidenceChip } from "./ConfidenceChip";
 import type { DayMatrix, TimeSlot, TimeSlotScore } from "@/types/fruktan";
+import type { ConfidenceBreakdown } from "@/lib/quality";
 import {
   formatTemperature,
   formatPercent,
@@ -44,6 +46,7 @@ interface DetailModalProps {
   onClose: () => void;
   onNavigate?: (direction: "prev" | "next") => void;
   confidence?: number;
+  confidenceBreakdown?: ConfidenceBreakdown;
   dataSource?: string;
 }
 
@@ -60,7 +63,8 @@ export function DetailModal({
   slot,
   onClose,
   onNavigate,
-  confidence = 85,
+  confidence = 75,
+  confidenceBreakdown,
   dataSource = "ICON-D2",
 }: DetailModalProps) {
   const [showRawData, setShowRawData] = useState(false);
@@ -241,12 +245,11 @@ export function DetailModal({
                   <Badge variant="outline" className="px-3 py-1.5 text-sm">
                     {dataSource}
                   </Badge>
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-muted/50 rounded-full text-sm">
-                    <span className="text-muted-foreground text-xs">
-                      Confidence
-                    </span>
-                    <span className="font-medium">{confidence}</span>
-                  </div>
+                  <ConfidenceChip 
+                    score={confidence} 
+                    breakdown={confidenceBreakdown}
+                    showLabel={true}
+                  />
                 </div>
 
                 {/* Subline */}

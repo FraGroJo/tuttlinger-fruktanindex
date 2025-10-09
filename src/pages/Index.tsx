@@ -19,6 +19,7 @@ import { SystemValidationPanel } from "@/components/SystemValidationPanel";
 
 import { useFruktanData } from "@/hooks/useFruktanData";
 import { useHorses } from "@/hooks/useHorses";
+import { useSystemMonitoring } from "@/hooks/useSystemMonitoring";
 import { Loader2, Download, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -46,6 +47,9 @@ const Index = () => {
     serviceUnavailable = false,
     dataSource
   } = useFruktanData(true, location);
+  
+  // Hole Monitoring-Report für Confidence-Werte
+  const { report } = useSystemMonitoring();
   
   // API-Client für Validierung
   const [rawApiData, setRawApiData] = useState<any>(null);
@@ -242,6 +246,10 @@ const Index = () => {
       </div>
     );
   }
+
+  // Übergebe Confidence pro Tag aus Monitoring-Report
+  const confidenceByDay = report?.confidenceByDay || Array(7).fill(75);
+  const confidenceBreakdown = report?.confidenceBreakdown;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">

@@ -8,9 +8,13 @@ import { RiskBadge } from "./RiskBadge";
 import { DetailModal } from "./DetailModal";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import type { DayMatrix, TimeSlot } from "@/types/fruktan";
+import type { ConfidenceBreakdown } from "@/lib/quality";
 
 interface HeatmapViewProps {
   days: DayMatrix[];
+  confidenceByDay?: number[];
+  confidenceBreakdown?: ConfidenceBreakdown;
+  dataSource?: string;
   className?: string;
 }
 
@@ -20,7 +24,7 @@ const TIME_SLOTS: { key: TimeSlot; label: string }[] = [
   { key: "evening", label: "Abend\n16-21h" },
 ];
 
-export function HeatmapView({ days, className = "" }: HeatmapViewProps) {
+export function HeatmapView({ days, confidenceByDay, confidenceBreakdown, dataSource = "ICON-D2", className = "" }: HeatmapViewProps) {
   const [selectedSlot, setSelectedSlot] = useState<{
     dayIndex: number;
     slotIndex: number;
@@ -300,6 +304,9 @@ export function HeatmapView({ days, className = "" }: HeatmapViewProps) {
           slot={TIME_SLOTS[selectedSlot.slotIndex].key}
           onClose={() => setSelectedSlot(null)}
           onNavigate={handleNavigate}
+          confidence={confidenceByDay?.[selectedSlot.dayIndex] || 75}
+          confidenceBreakdown={confidenceBreakdown}
+          dataSource={dataSource}
         />
       )}
     </>

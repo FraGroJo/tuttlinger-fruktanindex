@@ -31,6 +31,8 @@ import { validationLogger } from "@/lib/validationLog";
 import { WeatherSourceIndicator } from "@/components/WeatherSourceIndicator";
 import { RiskLegend } from "@/components/RiskLegend";
 import { DEFAULT_LOCATION } from "@/types/fruktan";
+import { ConfidenceBar, ConfidenceChip } from "@/components/ConfidenceChip";
+import { formatTemperature, formatPercent } from "@/lib/formatters";
 import {
   Tooltip,
   TooltipContent,
@@ -75,19 +77,17 @@ export default function SystemStatus() {
   };
 
   const getConfidenceBadge = () => {
-    if (status.confidence === "normal") {
-      return (
-        <Badge variant="outline" className="bg-success/10 text-success">
-          Hoch
-        </Badge>
-      );
-    } else {
-      return (
-        <Badge variant="outline" className="bg-warning/10 text-warning">
-          Niedrig
-        </Badge>
-      );
-    }
+    const score = report?.confidenceScore || 0;
+    return <ConfidenceChip score={score} breakdown={report?.confidenceBreakdown} />;
+  };
+
+  const getDataQuality = () => {
+    const score = report?.confidenceScore || 0;
+    return {
+      confidence: score,
+      score,
+      text: score >= 75 ? 'Hoch' : score >= 50 ? 'Mittel' : 'Niedrig',
+    };
   };
 
   const handleManualCheck = async () => {
@@ -203,12 +203,17 @@ export default function SystemStatus() {
 
               {/* Confidence */}
               <div>
-                <div className="text-sm text-muted-foreground mb-1">Konfidenz</div>
-                <div aria-label={`Confidence ${status.confidence === 'normal' ? 100 : 50} von 100`}>
+                <div className="text-sm text-muted-foreground mb-1">
+                  Confidence
+                </div>
+                <div aria-label={`Confidence ${getDataQuality().score} von 100`}>
                   {getConfidenceBadge()}
-                  <span className="ml-2 text-sm text-muted-foreground">
-                    {status.confidence === "normal" ? "100" : "50"}/100
-                  </span>
+                  <div className="mt-2">
+                    <ConfidenceBar 
+                      score={getDataQuality().score} 
+                      breakdown={report?.confidenceBreakdown}
+                    />
+                  </div>
                 </div>
               </div>
 
