@@ -15,6 +15,7 @@ import { TurnoutMatrix } from "@/components/TurnoutMatrix";
 import { DataQualityBanner } from "@/components/DataQualityBanner";
 import { ScoreDebugger } from "@/components/ScoreDebugger";
 import { SystemValidationPanel } from "@/components/SystemValidationPanel";
+import { SystemStatusCard } from "@/components/SystemStatusCard";
 import { useFruktanData } from "@/hooks/useFruktanData";
 import { useHorses } from "@/hooks/useHorses";
 import { Loader2, Download, FileText } from "lucide-react";
@@ -265,6 +266,9 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="matrix" className="space-y-4 sm:space-y-6 md:space-y-8">
+            {/* System Status Card - Phase 3 */}
+            <SystemStatusCard />
+
             {/* Data Quality Banner */}
             <DataQualityBanner
               confidence={data.confidence || 'normal'}
