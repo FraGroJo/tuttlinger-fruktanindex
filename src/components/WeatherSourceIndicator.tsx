@@ -16,32 +16,50 @@ export function WeatherSourceIndicator({ source, fallbackUsed }: WeatherSourceIn
   const isFallback = fallbackUsed || source.includes('Fallback');
 
   const getStatusConfig = () => {
-    if (isIconD2 && !isFallback) {
+    // Normalisiere die Quelle
+    const modelName = source.includes('ICON-D2') ? 'DWD ICON-D2' : 
+                     source.includes('ECMWF') ? 'ECMWF' : source;
+    
+    // Primary ICON-D2 Active (kein Fallback)
+    if (modelName === 'DWD ICON-D2' && !isFallback) {
       return {
         icon: <CheckCircle2 className="w-3.5 h-3.5" />,
         variant: 'default' as const,
-        label: 'DWD ICON-D2',
-        description: 'Hochauflösendes Regionalmodell für Deutschland (2.2 km Auflösung)',
-        color: 'text-green-600',
+        label: '🟢 DWD ICON-D2',
+        description: 'Primäres Wettermodell DWD ICON-D2 (2.2 km Auflösung)',
+        color: 'text-success',
       };
     }
     
-    if (isFallback) {
+    // Fallback ECMWF Active
+    if (isFallback || (modelName === 'ECMWF' && source.includes('Fallback'))) {
       return {
         icon: <AlertTriangle className="w-3.5 h-3.5" />,
         variant: 'secondary' as const,
-        label: 'ECMWF [Fallback]',
-        description: 'Primärquelle ICON-D2 nicht verfügbar. Globales ECMWF-Modell aktiv.',
-        color: 'text-yellow-600',
+        label: '🟡 ECMWF [Fallback]',
+        description: 'Fallback auf ECMWF-Modell wegen Ausfall ICON-D2',
+        color: 'text-warning',
       };
     }
-
+    
+    // ECMWF direkt (primär gewählt)
+    if (modelName === 'ECMWF') {
+      return {
+        icon: <Cloud className="w-3.5 h-3.5" />,
+        variant: 'outline' as const,
+        label: '🔵 ECMWF',
+        description: 'ECMWF Wettermodell aktiv',
+        color: 'text-blue-500',
+      };
+    }
+    
+    // Fallback für unbekannte Quellen
     return {
-      icon: <Cloud className="w-3.5 h-3.5" />,
+      icon: <AlertTriangle className="w-3.5 h-3.5" />,
       variant: 'outline' as const,
-      label: 'ECMWF',
-      description: 'Europäisches Wettermodell (9 km Auflösung)',
-      color: 'text-blue-600',
+      label: source,
+      description: 'Wettermodell aktiv',
+      color: 'text-muted-foreground',
     };
   };
 

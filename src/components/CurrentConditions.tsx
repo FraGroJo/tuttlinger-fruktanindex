@@ -31,6 +31,18 @@ export function CurrentConditions({ current, source, flags = [], fruktanNow }: C
     }
   };
   
+  const formatTime = (isoString: string) => {
+    try {
+      return new Date(isoString).toLocaleTimeString("de-DE", {
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "Europe/Berlin",
+      });
+    } catch {
+      return "";
+    }
+  };
+  
   const formatNumber = (value: number | undefined, decimals = 1) => {
     if (value === undefined || isNaN(value)) return "—";
     return new Intl.NumberFormat('de-DE', {
@@ -52,7 +64,14 @@ export function CurrentConditions({ current, source, flags = [], fruktanNow }: C
               <div className="p-2 sm:p-3 rounded-full bg-primary/10 ring-2 sm:ring-4 ring-primary/5 animate-pulse">
                 <Thermometer className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
               </div>
-              <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground tracking-tight">Aktuelle Bedingungen</h2>
+              <div>
+                <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground tracking-tight">Aktuelle Bedingungen</h2>
+                {source.data_timestamp_local && (
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    Stand: {formatTime(source.data_timestamp_local)} Uhr
+                  </p>
+                )}
+              </div>
             </div>
             
             {/* Temperature Display */}

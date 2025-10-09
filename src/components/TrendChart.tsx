@@ -81,15 +81,19 @@ const CustomTooltip: React.FC<any> = ({ active, payload, label }) => {
   const level =
     p.score <= EMS.GREEN_MAX ? "Sicher" :
     p.score <= EMS.YELLOW_MAX ? "Erhöht" : "Hoch";
+  
+  // Cloud cover berechnen (falls vorhanden)
+  const cloudCover = p.cloudCover !== undefined ? ` · Bewölkung ${p.cloudCover}%` : '';
+  
   return (
     <div className="rounded-xl border border-border bg-card/95 p-3 shadow-sm">
       <div className="text-xs text-muted-foreground">{labelText}</div>
       <div className="mt-1 flex items-center gap-2">
         <span className="inline-block h-2 w-2 rounded-full" style={{ background: col }} />
-        <span className="font-medium text-card-foreground">Score: {fmtNumber(p.score)}</span>
+        <span className="font-medium text-card-foreground">Score {fmtNumber(p.score)}</span>
       </div>
       <div className="mt-1 text-xs text-muted-foreground">
-        {level} • {p.temperature.toFixed(1)}°C{p.isFrost ? " • Frost" : ""}
+        {level} · Temp {p.temperature.toFixed(1)}°C{cloudCover}{p.isFrost ? " · Frost" : ""}
       </div>
     </div>
   );
@@ -149,7 +153,11 @@ export function TrendChart({ data, confidence = "normal", className = "", nowTs,
         </div>
       </div>
 
-      <div role="img" aria-label="Trend des Fruktan-Scores über Zeit" className="w-full overflow-x-auto">
+      <div 
+        role="img" 
+        aria-label="Fruktan-Score Verlauf über Zeit, farbliche Bänder für Risikobereiche: Grün 0-29 Sicher, Gelb 30-59 Erhöht, Rot 60-100 Risiko"
+        className="w-full overflow-x-auto"
+      >
         <ResponsiveContainer width="100%" height={320}>
           <ComposedChart data={data} margin={{ top: 10, right: 8, bottom: 8, left: -10 }}>
             <defs>
@@ -204,13 +212,13 @@ export function TrendChart({ data, confidence = "normal", className = "", nowTs,
             <ReferenceLine y={EMS.GREEN_MAX} stroke="#16a34a" strokeDasharray="4 4" strokeWidth={1.5} opacity={0.6} />
             <ReferenceLine y={EMS.YELLOW_MAX} stroke="#f59e0b" strokeDasharray="4 4" strokeWidth={1.5} opacity={0.6} />
             
-            {/* Zukunfts-Overlay */}
+            {/* Zukunfts-Overlay & Low Confidence */}
             {nowInRange && nowX && (
               <ReferenceArea
                 x1={nowX}
                 x2={maxTs}
-                fill="#334155"
-                fillOpacity={0.04}
+                fill={confidence === 'low' ? '#fbbf24' : '#334155'}
+                fillOpacity={confidence === 'low' ? 0.08 : 0.04}
                 ifOverflow="hidden"
               />
             )}

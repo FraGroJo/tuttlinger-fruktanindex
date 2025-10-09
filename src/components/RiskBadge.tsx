@@ -36,10 +36,15 @@ export function RiskBadge({ level, score, emsMode, className = "" }: RiskBadgePr
   };
 
   const { bg, text, icon: Icon, label } = config[level];
+  
+  // ARIA label for accessibility
+  const ariaLabel = `Fruktan-Score ${score !== undefined ? Math.round(score) : ''}, ${label}`;
 
   return (
     <div
       className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg ${bg} ${text} font-medium text-sm transition-all duration-300 ${className}`}
+      aria-label={ariaLabel}
+      role="status"
     >
       <Icon className="w-4 h-4" />
       <span>{label}</span>

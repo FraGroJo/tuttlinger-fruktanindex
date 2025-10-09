@@ -13,6 +13,7 @@ import { PastureDataForm } from "@/components/PastureDataForm";
 import { HorseList } from "@/components/HorseList";
 import { TurnoutMatrix } from "@/components/TurnoutMatrix";
 import { DataQualityBanner } from "@/components/DataQualityBanner";
+import { RiskLegend } from "@/components/RiskLegend";
 import { ScoreDebugger } from "@/components/ScoreDebugger";
 import { SystemValidationPanel } from "@/components/SystemValidationPanel";
 import { SystemStatusCard } from "@/components/SystemStatusCard";
@@ -43,7 +44,7 @@ const Index = () => {
     dataIntegrity = 'ok',
     apiSyncError = false,
     serviceUnavailable = false,
-    dataSource = 'Open-Meteo (ECMWF)'
+    dataSource
   } = useFruktanData(true, location);
   
   // API-Client für Validierung
@@ -272,10 +273,13 @@ const Index = () => {
             {/* Data Quality Banner */}
             <DataQualityBanner
               confidence={data.confidence || 'normal'}
-              source={dataSource}
+              source={data.metadata?.dataSource || dataSource || 'Open-Meteo'}
               fallbackUsed={data.metadata?.fallbackUsed}
               validationStatus="ok"
             />
+            
+            {/* Risk Legend */}
+            <RiskLegend />
 
             {/* Current Conditions */}
             {data.current && (

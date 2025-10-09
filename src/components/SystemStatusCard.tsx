@@ -2,10 +2,11 @@
  * Phase 3: System-Status Anzeige
  */
 
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { CheckCircle, AlertTriangle, XCircle, RefreshCw, Activity } from "lucide-react";
+import { CheckCircle, AlertTriangle, XCircle, RefreshCw, Activity, Loader2 } from "lucide-react";
 import { useSystemMonitoring } from "@/hooks/useSystemMonitoring";
 import {
   Tooltip,
@@ -16,6 +17,7 @@ import {
 
 export function SystemStatusCard() {
   const { status, report, isRunning, runManualCheck } = useSystemMonitoring();
+  const [isChecking, setIsChecking] = React.useState(false);
 
   const getStatusIcon = () => {
     if (status.color === 'green') {
@@ -61,9 +63,19 @@ export function SystemStatusCard() {
           <Button 
             size="sm" 
             variant="outline"
-            onClick={runManualCheck}
+            onClick={async () => {
+              if (isChecking) return;
+              setIsChecking(true);
+              await runManualCheck();
+              setIsChecking(false);
+            }}
+            disabled={isChecking}
           >
-            <RefreshCw className="h-4 w-4 mr-2" />
+            {isChecking ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-2" />
+            )}
             Jetzt prüfen
           </Button>
         </CardTitle>

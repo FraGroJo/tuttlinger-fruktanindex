@@ -299,7 +299,7 @@ class MonitoringSystem {
   }
 
   /**
-   * Speichert Report in LocalStorage
+   * Speichert Report in LocalStorage mit Log-Rotation
    */
   private saveReport(report: MonitoringReport) {
     try {
@@ -307,8 +307,36 @@ class MonitoringSystem {
       const key = `monitoring_report_${dateStr}`;
       localStorage.setItem(key, JSON.stringify(report));
       localStorage.setItem('monitoring_latest', JSON.stringify(report));
+      
+      // Log-Rotation: Lösche Reports älter als 14 Tage
+      this.cleanOldReports();
     } catch (error) {
       console.error('Failed to save monitoring report:', error);
+    }
+  }
+  
+  /**
+   * Entfernt alte Reports (>14 Tage) zur Begrenzung der LocalStorage-Nutzung
+   */
+  private cleanOldReports() {
+    try {
+      const now = new Date();
+      const maxAge = 14 * 24 * 60 * 60 * 1000; // 14 Tage in ms
+      
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key?.startsWith('monitoring_report_')) {
+          const dateStr = key.replace('monitoring_report_', '');
+          const reportDate = new Date(dateStr);
+          const age = now.getTime() - reportDate.getTime();
+          
+          if (age > maxAge) {
+            localStorage.removeItem(key);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to clean old reports:', error);
     }
   }
 

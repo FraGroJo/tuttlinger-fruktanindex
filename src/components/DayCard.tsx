@@ -61,8 +61,19 @@ export function DayCard({ matrix, className = "" }: DayCardProps) {
       <Card className={`overflow-hidden backdrop-blur-sm bg-card/90 border shadow-lg rounded-2xl ${className}`}>
         {/* Header */}
         <div className="bg-gradient-to-r from-primary/10 to-primary/5 px-4 py-3 border-b">
-          <h3 className="font-bold text-foreground text-lg">{dayLabel}</h3>
-          <p className="text-xs text-muted-foreground">{formattedDate}</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-foreground text-lg">{dayLabel}</h3>
+              <p className="text-xs text-muted-foreground">{formattedDate}</p>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Stand: {new Date().toLocaleTimeString("de-DE", { 
+                hour: "2-digit", 
+                minute: "2-digit",
+                timeZone: "Europe/Berlin"
+              })}
+            </div>
+          </div>
         </div>
 
         {/* 3 Segmente nebeneinander */}
@@ -108,10 +119,11 @@ export function DayCard({ matrix, className = "" }: DayCardProps) {
                   <TooltipContent className="max-w-xs">
                     <div className="text-xs space-y-1">
                       <p className="font-semibold">{label} ({time})</p>
+                      <p className="font-medium">Score: {data.score} - {data.level === 'safe' ? 'Sicher' : data.level === 'moderate' ? 'Erhöht' : 'Hoch'}</p>
                       {data.temperature_spectrum && (
-                        <p>Temp: {data.temperature_spectrum.min.toFixed(1)}° – {data.temperature_spectrum.median.toFixed(1)}° – {data.temperature_spectrum.max.toFixed(1)}°</p>
+                        <p>Temp-Spektrum: {data.temperature_spectrum.min.toFixed(1)}° – {data.temperature_spectrum.median.toFixed(1)}° – {data.temperature_spectrum.max.toFixed(1)}°</p>
                       )}
-                      <p className="text-muted-foreground leading-relaxed">{data.reason}</p>
+                      <p className="text-muted-foreground leading-relaxed mt-1">{data.reason}</p>
                     </div>
                   </TooltipContent>
                 </Tooltip>

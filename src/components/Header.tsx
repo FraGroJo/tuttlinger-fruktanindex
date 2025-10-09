@@ -75,10 +75,15 @@ export function Header({ location, metadata, fruktanNow }: HeaderProps) {
               Tuttlinger Fruktanindex
             </h1>
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <MapPin className="w-3.5 h-3.5" />
-                <span>{location.name}</span>
-                <span className="text-xs opacity-60">47.969°N, 8.783°E</span>
+                <span>{location.name} · 47.969°N, 8.783°E</span>
+                {metadata?.localTimestamp && (
+                  <>
+                    <span>·</span>
+                    <span>Stand {formatTimestamp(metadata.localTimestamp)}</span>
+                  </>
+                )}
               </div>
               {metadata?.dataSource && (
                 <WeatherSourceIndicator 

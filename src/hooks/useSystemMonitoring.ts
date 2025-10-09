@@ -24,6 +24,23 @@ export function useSystemMonitoring() {
       setReport(lastReport);
     }
 
+    // Pause monitoring wenn Tab hidden
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        monitoringSystem.stopMonitoring();
+        setIsRunning(false);
+      } else {
+        monitoringSystem.startMonitoring((newStatus) => {
+          setStatus(newStatus);
+          const latestReport = monitoringSystem.getLastReport();
+          if (latestReport) {
+            setReport(latestReport);
+          }
+        });
+        setIsRunning(true);
+      }
+    };
+
     // Starte Monitoring
     monitoringSystem.startMonitoring((newStatus) => {
       setStatus(newStatus);
@@ -39,8 +56,12 @@ export function useSystemMonitoring() {
     const initialStatus = monitoringSystem.getSystemStatus();
     setStatus(initialStatus);
 
+    // Listen to visibility changes
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     // Cleanup
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       monitoringSystem.stopMonitoring();
       setIsRunning(false);
     };
