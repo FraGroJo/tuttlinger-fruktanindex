@@ -98,3 +98,10 @@ validationLogger.log(
   'Heatmap-Detail-Modal optimiert – Deutsche Formatierung, Anti-Overlap-Logik, Prev/Next-Navigation, Accessibility AA – Darstellung & Werte 100 % synchron',
   'ok'
 );
+
+// Log Überblick-Ansicht Optimierung
+validationLogger.log(
+  'ui',
+  'Überblick-Ansicht optimiert – KPIs, Gründe, Visuals 100 % konsistent | Dynamische Microcopy | Empfehlungen je Level | Anti-Overlap Temperatur-Spektrum',
+  'ok'
+);

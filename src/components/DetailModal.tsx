@@ -19,13 +19,14 @@ import { Badge } from "@/components/ui/badge";
 import {
   Thermometer,
   Cloud,
-  Droplets,
+  Droplets as Droplet,
   Wind,
   Sun,
   ChevronLeft,
   ChevronRight,
   FileJson,
   X,
+  Info,
 } from "lucide-react";
 import type { DayMatrix, TimeSlot, TimeSlotScore } from "@/types/fruktan";
 import {
@@ -176,151 +177,442 @@ export function DetailModal({
             </TabsList>
 
             {/* Tab 1: Überblick */}
-            <TabsContent value="overview" className="space-y-4 mt-4">
-              {/* Score & Level */}
-              <Card className="p-4">
-                <div className="flex items-center justify-between">
+            <TabsContent value="overview" className="space-y-6 mt-4">
+              {/* A) KPI-Strip (oben) */}
+              <div className="space-y-4">
+                {/* Hauptwerte */}
+                <div className="flex items-start justify-between gap-4">
                   <div>
                     <div className="text-sm text-muted-foreground mb-1">
                       Fruktan-Score
                     </div>
-                    <div className="text-5xl font-black">
+                    <div className="text-5xl font-bold tracking-tight">
                       {Math.round(slotData.score)}
                     </div>
                   </div>
-                  <RiskBadge level={slotData.level} score={slotData.score} />
+                  <RiskBadge
+                    level={slotData.level}
+                    score={slotData.score}
+                    aria-label={`Fruktan-Score ${Math.round(
+                      slotData.score
+                    )}, ${
+                      slotData.level === "safe"
+                        ? "Sicher"
+                        : slotData.level === "moderate"
+                        ? "Erhöht"
+                        : "Risiko"
+                    }`}
+                  />
                 </div>
-              </Card>
 
-              {/* Temperatur-Spektrum mit Anti-Overlap */}
-              <Card className="p-4">
-                <h4
-                  className="font-semibold text-lg mb-4 flex items-center gap-2"
-                  id="temp-spectrum-heading"
-                >
-                  <Thermometer className="w-5 h-5" />
-                  Temperatur-Spektrum
-                </h4>
+                {/* Mini-KPIs als Chips */}
+                <div className="flex flex-wrap gap-2">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-muted/50 rounded-full text-sm">
+                    <Thermometer className="w-4 h-4 text-muted-foreground" />
+                    <span className="font-medium">
+                      {formatTemperature(tempSpectrum.median, 1)}
+                    </span>
+                  </div>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-muted/50 rounded-full text-sm">
+                    <Cloud className="w-4 h-4 text-muted-foreground" />
+                    <span className="font-medium">
+                      {formatPercent(slotData.raw?.cloud_avg || 0, 0)}
+                    </span>
+                  </div>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-muted/50 rounded-full text-sm">
+                    <Sun className="w-4 h-4 text-muted-foreground" />
+                    <span className="font-medium">
+                      {formatRadiation(slotData.raw?.radiation_avg || 0, 0)}
+                    </span>
+                  </div>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-muted/50 rounded-full text-sm">
+                    <Droplet className="w-4 h-4 text-muted-foreground" />
+                    <span className="font-medium">
+                      {formatPercent(slotData.raw?.rh_avg || 0, 0)}
+                    </span>
+                  </div>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-muted/50 rounded-full text-sm">
+                    <Wind className="w-4 h-4 text-muted-foreground" />
+                    <span className="font-medium">
+                      {formatWind(slotData.raw?.wind_avg || 0, 1)}
+                    </span>
+                  </div>
+                  <Badge variant="outline" className="px-3 py-1.5 text-sm">
+                    {dataSource}
+                  </Badge>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-muted/50 rounded-full text-sm">
+                    <span className="text-muted-foreground text-xs">
+                      Confidence
+                    </span>
+                    <span className="font-medium">{confidence}</span>
+                  </div>
+                </div>
 
-                {/* Gradient-Skala */}
-                <div
-                  className="space-y-3"
-                  aria-labelledby="temp-spectrum-heading"
-                  aria-description="Temperatur-Spektrum mit Min/Median/Max-Markern"
-                >
-                  <div className="relative h-16 bg-gradient-to-r from-blue-400 via-yellow-300 to-red-400 rounded-lg shadow-inner">
-                    {hasOverlap ? (
-                      // Gestaffelte Anzeige bei Überlappung
-                      <div className="absolute -top-16 left-0 right-0 flex justify-center">
-                        <Badge
-                          variant="outline"
-                          className="bg-background px-3 py-1 text-xs"
-                        >
-                          Min/Median/Max:{" "}
-                          {formatTemperature(tempSpectrum.min, 1)} /{" "}
-                          {formatTemperature(tempSpectrum.median, 1)} /{" "}
-                          {formatTemperature(tempSpectrum.max, 1)}
-                        </Badge>
+                {/* Subline */}
+                <div className="text-xs text-muted-foreground">
+                  Stand {formatTime(new Date())} · Zeitraum: {SLOT_LABELS[slot]}{" "}
+                  · Ort: Tuttlingen 47.969°N, 8.783°E
+                </div>
+              </div>
+
+              <div className="h-px bg-border" />
+
+              {/* B) Risiko-Begründung + C) Visuals (2-Spalten Desktop, 1-Spalte Mobile) */}
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* B) Risiko-Begründung (links) */}
+                <div className="space-y-4">
+                  <h4 className="text-base font-semibold flex items-center gap-2">
+                    <Info className="w-5 h-5" />
+                    Warum dieser Score?
+                  </h4>
+
+                  <div
+                    className="space-y-2"
+                    aria-description={`Grund für den Score: Bewölkung ${
+                      slotData.raw?.cloud_avg || 0
+                    }%`}
+                  >
+                    {/* Cloud factor */}
+                    {slotData.raw?.cloud_avg !== undefined &&
+                      slotData.raw.cloud_avg >= 80 && (
+                        <div className="flex items-start gap-2 text-sm p-2 rounded bg-risk-safe-bg/50">
+                          <span className="text-lg leading-none">✓</span>
+                          <div>
+                            <span className="font-medium">
+                              Bewölkung hoch (
+                              {formatPercent(slotData.raw.cloud_avg, 0)})
+                            </span>
+                            <span className="text-muted-foreground">
+                              {" "}
+                              → Risiko reduziert
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    {slotData.raw?.cloud_avg !== undefined &&
+                      slotData.raw.cloud_avg >= 50 &&
+                      slotData.raw.cloud_avg < 80 && (
+                        <div className="flex items-start gap-2 text-sm p-2 rounded bg-muted/30">
+                          <span className="text-lg leading-none">➖</span>
+                          <div>
+                            <span className="font-medium">
+                              Bewölkung moderat (
+                              {formatPercent(slotData.raw.cloud_avg, 0)})
+                            </span>
+                            <span className="text-muted-foreground">
+                              {" "}
+                              → neutraler Effekt
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    {slotData.raw?.cloud_avg !== undefined &&
+                      slotData.raw.cloud_avg < 50 && (
+                        <div className="flex items-start gap-2 text-sm p-2 rounded bg-risk-high-bg/50">
+                          <span className="text-lg leading-none">⚠</span>
+                          <div>
+                            <span className="font-medium">
+                              Bewölkung niedrig (
+                              {formatPercent(slotData.raw.cloud_avg, 0)})
+                            </span>
+                            <span className="text-muted-foreground">
+                              {" "}
+                              → Risiko erhöht
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                    {/* Radiation factor */}
+                    {slotData.raw?.radiation_avg !== undefined &&
+                      slotData.raw.radiation_avg < 100 && (
+                        <div className="flex items-start gap-2 text-sm p-2 rounded bg-muted/30">
+                          <span className="text-lg leading-none">➖</span>
+                          <div>
+                            <span className="font-medium">
+                              Strahlung niedrig (Ø{" "}
+                              {formatRadiation(slotData.raw.radiation_avg, 0)})
+                            </span>
+                            <span className="text-muted-foreground">
+                              {" "}
+                              → geringe Photosynthese
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    {slotData.raw?.radiation_avg !== undefined &&
+                      slotData.raw.radiation_avg >= 300 && (
+                        <div className="flex items-start gap-2 text-sm p-2 rounded bg-risk-high-bg/50">
+                          <span className="text-lg leading-none">⚠</span>
+                          <div>
+                            <span className="font-medium">
+                              Strahlung hoch (Ø{" "}
+                              {formatRadiation(slotData.raw.radiation_avg, 0)})
+                            </span>
+                            <span className="text-muted-foreground">
+                              {" "}
+                              → starke Photosynthese
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                    {/* Temperature factor */}
+                    {tempSpectrum.min < 0 ? (
+                      <div className="flex items-start gap-2 text-sm p-2 rounded bg-risk-high-bg/50">
+                        <span className="text-lg leading-none">✳</span>
+                        <div>
+                          <span className="font-medium">
+                            Frost (Min {formatTemperature(tempSpectrum.min, 1)})
+                          </span>
+                          <span className="text-muted-foreground">
+                            {" "}
+                            → Risiko steigt trotz Sonne
+                          </span>
+                        </div>
+                      </div>
+                    ) : tempSpectrum.median < 10 ? (
+                      <div className="flex items-start gap-2 text-sm p-2 rounded bg-muted/30">
+                        <span className="text-lg leading-none">➖</span>
+                        <div>
+                          <span className="font-medium">
+                            Temperatur kühl (Median{" "}
+                            {formatTemperature(tempSpectrum.median, 1)})
+                          </span>
+                          <span className="text-muted-foreground">
+                            {" "}
+                            → reduziertes Wachstum
+                          </span>
+                        </div>
+                      </div>
+                    ) : tempSpectrum.median >= 15 ? (
+                      <div className="flex items-start gap-2 text-sm p-2 rounded bg-muted/30">
+                        <span className="text-lg leading-none">➖</span>
+                        <div>
+                          <span className="font-medium">
+                            Temperatur warm (Median{" "}
+                            {formatTemperature(tempSpectrum.median, 1)})
+                          </span>
+                          <span className="text-muted-foreground">
+                            {" "}
+                            → gutes Wachstum
+                          </span>
+                        </div>
                       </div>
                     ) : (
-                      <>
-                        {/* Min Marker */}
-                        <div
-                          className="absolute top-0 h-full w-1.5 bg-blue-900 shadow-lg"
-                          style={{ left: `${minPos}%` }}
-                          title={`Min: ${formatTemperature(tempSpectrum.min)}`}
-                        >
-                          <div className="absolute -top-7 left-1/2 -translate-x-1/2 text-xs font-bold text-blue-900 whitespace-nowrap">
-                            Min
-                          </div>
+                      <div className="flex items-start gap-2 text-sm p-2 rounded bg-muted/30">
+                        <span className="text-lg leading-none">➖</span>
+                        <div>
+                          <span className="font-medium">
+                            Temperatur moderat (Median{" "}
+                            {formatTemperature(tempSpectrum.median, 1)})
+                          </span>
+                          <span className="text-muted-foreground">
+                            {" "}
+                            → kein Frost-Trigger
+                          </span>
                         </div>
-
-                        {/* Median Marker */}
-                        <div
-                          className="absolute top-0 h-full w-2 bg-gray-900 shadow-lg"
-                          style={{ left: `${medianPos}%` }}
-                          title={`Median: ${formatTemperature(
-                            tempSpectrum.median
-                          )}`}
-                        >
-                          <div className="absolute -top-7 left-1/2 -translate-x-1/2 text-xs font-bold text-gray-900 whitespace-nowrap">
-                            Median
-                          </div>
-                        </div>
-
-                        {/* Max Marker */}
-                        <div
-                          className="absolute top-0 h-full w-1.5 bg-red-900 shadow-lg"
-                          style={{ left: `${maxPos}%` }}
-                          title={`Max: ${formatTemperature(tempSpectrum.max)}`}
-                        >
-                          <div className="absolute -top-7 left-1/2 -translate-x-1/2 text-xs font-bold text-red-900 whitespace-nowrap">
-                            Max
-                          </div>
-                        </div>
-                      </>
+                      </div>
                     )}
                   </div>
 
-                  {/* Skalen-Beschriftung */}
-                  <div className="flex justify-between text-xs text-muted-foreground px-1">
-                    <span>−20 °C</span>
-                    <span>0 °C</span>
-                    <span>40 °C</span>
+                  {/* Empfehlungen */}
+                  <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                    <h5 className="font-semibold text-sm">Empfehlungen</h5>
+                    {slotData.level === "safe" && (
+                      <>
+                        <div className="flex items-start gap-2 text-sm">
+                          <span className="text-green-600 font-bold">✓</span>
+                          <span>
+                            <strong>Do:</strong> Weiden ganztägig möglich;
+                            ideales Zeitfenster
+                          </span>
+                        </div>
+                        <div className="flex items-start gap-2 text-sm">
+                          <span className="text-red-600 font-bold">✗</span>
+                          <span>
+                            <strong>Don't:</strong> Keine besonderen
+                            Einschränkungen
+                          </span>
+                        </div>
+                      </>
+                    )}
+                    {slotData.level === "moderate" && (
+                      <>
+                        <div className="flex items-start gap-2 text-sm">
+                          <span className="text-green-600 font-bold">✓</span>
+                          <span>
+                            <strong>Do:</strong> Weiden am späten Vormittag
+                            möglich; weiter beobachten
+                          </span>
+                        </div>
+                        <div className="flex items-start gap-2 text-sm">
+                          <span className="text-red-600 font-bold">✗</span>
+                          <span>
+                            <strong>Don't:</strong> Kein zusätzliches kurzes,
+                            sonniges Zeitfenster erzwingen
+                          </span>
+                        </div>
+                      </>
+                    )}
+                    {slotData.level === "high" && (
+                      <>
+                        <div className="flex items-start gap-2 text-sm">
+                          <span className="text-green-600 font-bold">✓</span>
+                          <span>
+                            <strong>Do:</strong> Weide stark einschränken oder
+                            verschieben
+                          </span>
+                        </div>
+                        <div className="flex items-start gap-2 text-sm">
+                          <span className="text-red-600 font-bold">✗</span>
+                          <span>
+                            <strong>Don't:</strong> Nicht bei direkter
+                            Sonneneinstrahlung weiden
+                          </span>
+                        </div>
+                      </>
+                    )}
+                    <button
+                      onClick={() => {
+                        const calculationTab = document.querySelector(
+                          '[value="calculation"]'
+                        ) as HTMLElement;
+                        calculationTab?.click();
+                      }}
+                      className="text-xs text-primary hover:underline mt-2"
+                    >
+                      Details → Tab Berechnung
+                    </button>
                   </div>
-                  <div className="text-center text-sm text-muted-foreground">
-                    Spanne: {formatTemperature(range)}
-                  </div>
+                </div>
 
-                  {/* Datenzeile */}
-                  <div className="grid grid-cols-3 gap-4 pt-3 border-t">
-                    <div className="text-center">
-                      <div className="text-xs text-muted-foreground">
-                        Minimum
-                      </div>
-                      <div className="text-lg font-bold">
-                        {formatTemperature(tempSpectrum.min)}
-                      </div>
+                {/* C) Visuals (rechts) */}
+                <div className="space-y-6">
+                  {/* Temperatur-Spektrum */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Thermometer className="w-5 h-5 text-muted-foreground" />
+                      <h4 className="text-base font-semibold">
+                        Temperatur-Spektrum
+                      </h4>
                     </div>
-                    <div className="text-center">
-                      <div className="text-xs text-muted-foreground">
-                        Median
-                      </div>
-                      <div className="text-lg font-bold">
-                        {formatTemperature(tempSpectrum.median)}
-                      </div>
+
+                    {/* Gradient Bar with Markers */}
+                    <div
+                      className="relative h-12 bg-gradient-to-r from-blue-400 via-yellow-300 to-red-400 rounded-lg"
+                      aria-description="Temperatur-Spektrum mit Min/Median/Max-Markern"
+                    >
+                      {hasOverlap ? (
+                        // Stacked labels to prevent overlap
+                        <>
+                          <div
+                            className="absolute top-0 bottom-0 flex flex-col items-center justify-center"
+                            style={{ left: `${minPos}%` }}
+                          >
+                            <div className="w-0.5 h-full bg-gray-800"></div>
+                            <div className="absolute -top-8 text-xs font-semibold whitespace-nowrap">
+                              {formatTemperature(tempSpectrum.min, 1)}
+                            </div>
+                            <div className="absolute -top-14 text-[10px] text-muted-foreground">
+                              Min
+                            </div>
+                          </div>
+                          <div
+                            className="absolute top-0 bottom-0 flex flex-col items-center justify-center"
+                            style={{ left: `${medianPos}%` }}
+                          >
+                            <div className="w-0.5 h-full bg-gray-900"></div>
+                            <div className="absolute -top-8 text-xs font-semibold whitespace-nowrap">
+                              {formatTemperature(tempSpectrum.median, 1)}
+                            </div>
+                            <div className="absolute -top-14 text-[10px] text-muted-foreground">
+                              Median
+                            </div>
+                          </div>
+                          <div
+                            className="absolute top-0 bottom-0 flex flex-col items-center justify-center"
+                            style={{ left: `${maxPos}%` }}
+                          >
+                            <div className="w-0.5 h-full bg-gray-800"></div>
+                            <div className="absolute -top-8 text-xs font-semibold whitespace-nowrap">
+                              {formatTemperature(tempSpectrum.max, 1)}
+                            </div>
+                            <div className="absolute -top-14 text-[10px] text-muted-foreground">
+                              Max
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        // Normal inline labels
+                        <>
+                          <div
+                            className="absolute top-0 bottom-0 flex flex-col items-center justify-center"
+                            style={{ left: `${minPos}%` }}
+                          >
+                            <div className="w-0.5 h-full bg-gray-800"></div>
+                            <div className="absolute -top-6 text-xs font-semibold whitespace-nowrap">
+                              Min: {formatTemperature(tempSpectrum.min, 1)}
+                            </div>
+                          </div>
+                          <div
+                            className="absolute top-0 bottom-0 flex flex-col items-center justify-center"
+                            style={{ left: `${medianPos}%` }}
+                          >
+                            <div className="w-0.5 h-full bg-gray-900"></div>
+                            <div className="absolute -top-6 text-xs font-semibold whitespace-nowrap">
+                              Median:{" "}
+                              {formatTemperature(tempSpectrum.median, 1)}
+                            </div>
+                          </div>
+                          <div
+                            className="absolute top-0 bottom-0 flex flex-col items-center justify-center"
+                            style={{ left: `${maxPos}%` }}
+                          >
+                            <div className="w-0.5 h-full bg-gray-800"></div>
+                            <div className="absolute -top-6 text-xs font-semibold whitespace-nowrap">
+                              Max: {formatTemperature(tempSpectrum.max, 1)}
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
-                    <div className="text-center">
-                      <div className="text-xs text-muted-foreground">
-                        Maximum
+
+                    {/* Scale Labels */}
+                    <div className="flex justify-between text-xs text-muted-foreground px-1">
+                      <span>−20 °C</span>
+                      <span>0 °C</span>
+                      <span>40 °C</span>
+                    </div>
+
+                    <div className="text-sm text-muted-foreground text-center">
+                      Spanne: {formatTemperature(range, 1)}
+                    </div>
+
+                    {/* Mini-Datenzeile */}
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div className="text-center">
+                        <div className="font-semibold">
+                          {formatTemperature(tempSpectrum.min, 1)}
+                        </div>
+                        <div className="text-muted-foreground">Minimum</div>
                       </div>
-                      <div className="text-lg font-bold">
-                        {formatTemperature(tempSpectrum.max)}
+                      <div className="text-center">
+                        <div className="font-semibold">
+                          {formatTemperature(tempSpectrum.median, 1)}
+                        </div>
+                        <div className="text-muted-foreground">Median</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="font-semibold">
+                          {formatTemperature(tempSpectrum.max, 1)}
+                        </div>
+                        <div className="text-muted-foreground">Maximum</div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </Card>
-
-              {/* Bewertung */}
-              <Card className="p-4 bg-muted/30">
-                <h4 className="font-semibold text-lg mb-2 flex items-center gap-2">
-                  <Sun className="w-5 h-5" />
-                  Bewertung
-                </h4>
-                <p className="text-sm leading-relaxed">{slotData.reason}</p>
-                {slotData.raw?.cloud_avg !== undefined &&
-                  slotData.raw.cloud_avg > 80 && (
-                    <p className="text-xs text-muted-foreground mt-2">
-                      💡 Bewölkung hoch → Risiko etwas reduziert
-                    </p>
-                  )}
-                {tempSpectrum.min <= 0 && (
-                  <p className="text-xs text-muted-foreground mt-2">
-                    ❄️ Frost ✳ → Risiko steigt trotz Sonne
-                  </p>
-                )}
-              </Card>
+              </div>
             </TabsContent>
 
             {/* Tab 2: Stundenverlauf */}
@@ -346,7 +638,7 @@ export function DetailModal({
                               <Thermometer className="w-4 h-4 mx-auto" />
                             </th>
                             <th className="text-center py-2 px-2 font-semibold">
-                              <Droplets className="w-4 h-4 mx-auto" />
+                              <Droplet className="w-4 h-4 mx-auto" />
                             </th>
                             <th className="text-center py-2 px-2 font-semibold">
                               <Cloud className="w-4 h-4 mx-auto" />
@@ -437,7 +729,7 @@ export function DetailModal({
 
                       <div className="space-y-1">
                         <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
-                          <Droplets className="w-3 h-3" />
+                          <Droplet className="w-3 h-3" />
                           <span>Luftfeuchtigkeit ⌀</span>
                         </div>
                         <div className="text-base font-semibold">
