@@ -14,6 +14,7 @@ import { HorseList } from "@/components/HorseList";
 import { TurnoutMatrix } from "@/components/TurnoutMatrix";
 import { DataQualityBanner } from "@/components/DataQualityBanner";
 import { ScoreDebugger } from "@/components/ScoreDebugger";
+import { SystemValidationPanel } from "@/components/SystemValidationPanel";
 import { useFruktanData } from "@/hooks/useFruktanData";
 import { useHorses } from "@/hooks/useHorses";
 import { Loader2, Download, FileText } from "lucide-react";
@@ -43,6 +44,20 @@ const Index = () => {
     serviceUnavailable = false,
     dataSource = 'Open-Meteo (ECMWF)'
   } = useFruktanData(true, location);
+  
+  // API-Client für Validierung
+  const [rawApiData, setRawApiData] = useState<any>(null);
+  
+  useEffect(() => {
+    if (data) {
+      // Hole Raw-Daten für Validierung
+      import('@/lib/apiClient').then(({ apiClient }) => {
+        apiClient.fetchWeatherData(location).then(response => {
+          setRawApiData(response.data);
+        }).catch(console.error);
+      });
+    }
+  }, [data, location]);
   const { horses, activeHorses } = useHorses();
   const { toast } = useToast();
 
@@ -241,10 +256,11 @@ const Index = () => {
 
       <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="matrix">Fruktan-Matrix</TabsTrigger>
             <TabsTrigger value="pasture">Weidestand</TabsTrigger>
             <TabsTrigger value="horses">Offenstall Pferde</TabsTrigger>
+            <TabsTrigger value="validation">System-Validierung</TabsTrigger>
           </TabsList>
 
           <TabsContent value="matrix" className="space-y-4 sm:space-y-6 md:space-y-8">
@@ -377,8 +393,7 @@ const Index = () => {
                 basierend auf NSC-Budget, Ration und den aktuellen Fruktan-Scores.
               </p>
               <p className="text-sm text-muted-foreground mt-2">
-                <strong>Berechnungsgrundlage:</strong> NSC-Budget (8-12 g/kg KM), Grundlast aus Heu/Kraftfutter, 
-                Aufnahmerate (1.0 kg TM/h ohne / 0.5 kg TM/h mit Maulkorb), konservative Score-zu-NSC-Mappierung.
+                <strong>Berechnung:</strong> NSC-Budget (8g/kg bei EMS, 12g/kg normal) minus NSC aus Heu/Kraftfutter = verfügbares Budget für Weide.
               </p>
             </div>
 
@@ -393,12 +408,17 @@ const Index = () => {
               <>
                 <div className="border-t pt-6">
                   <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <label className="text-sm font-medium">Datum wählen:</label>
+                    <div className="space-y-1">
+                      <h3 className="text-lg font-semibold">Weidezeit-Empfehlungen</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Minuten pro Zeitfenster für aktive Pferde
+                      </p>
+                    </div>
+                    <div className="flex gap-2 items-center">
                       <select
                         value={selectedDate}
                         onChange={(e) => setSelectedDate(e.target.value)}
-                        className="ml-2 rounded-md border border-input bg-background px-3 py-2"
+                        className="px-3 py-2 border rounded-md"
                       >
                         <option value={data.today.date}>
                           Heute ({new Date(data.today.date).toLocaleDateString("de-DE")})
@@ -407,7 +427,7 @@ const Index = () => {
                           Morgen ({new Date(data.tomorrow.date).toLocaleDateString("de-DE")})
                         </option>
                         <option value={data.dayAfterTomorrow.date}>
-                          Übermorgen ({new Date(data.dayAfterTomorrow.date).toLocaleDateString("de-DE")})
+                          Tag 2 ({new Date(data.dayAfterTomorrow.date).toLocaleDateString("de-DE")})
                         </option>
                         <option value={data.dayThree.date}>
                           Tag 3 ({new Date(data.dayThree.date).toLocaleDateString("de-DE")})
@@ -422,16 +442,16 @@ const Index = () => {
                           Tag 6 ({new Date(data.daySix.date).toLocaleDateString("de-DE")})
                         </option>
                       </select>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleExportTurnouts}
+                        className="gap-2"
+                      >
+                        <Download className="w-4 h-4" />
+                        CSV exportieren
+                      </Button>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleExportTurnouts}
-                      className="gap-2"
-                    >
-                      <Download className="w-4 h-4" />
-                      CSV exportieren
-                    </Button>
                   </div>
 
                   <TurnoutMatrix
@@ -442,6 +462,10 @@ const Index = () => {
                 </div>
               </>
             )}
+          </TabsContent>
+
+          <TabsContent value="validation" className="space-y-6">
+            <SystemValidationPanel data={rawApiData} />
           </TabsContent>
         </Tabs>
       </main>

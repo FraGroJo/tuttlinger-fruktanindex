@@ -739,6 +739,6 @@ export function useFruktanData(emsMode: boolean, location: LocationData = DEFAUL
     dataIntegrity,
     apiSyncError,
     serviceUnavailable,
-    dataSource 
+    dataSource
   };
 }
