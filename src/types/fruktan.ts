@@ -76,12 +76,12 @@ export const TIME_WINDOWS = {
 } as const;
 
 /**
- * Standard-Koordinaten Tuttlingen
+ * Standort Tuttlingen (fest)
  */
 export const DEFAULT_LOCATION = {
   name: "Tuttlingen",
-  lat: 47.985,
-  lon: 8.82,
+  lat: 47.969083,
+  lon: 8.783222,
   timezone: "Europe/Berlin",
 } as const;
 
@@ -100,10 +100,11 @@ export interface TemperatureSpectrum {
  * Quell-Metadaten
  */
 export interface SourceMetadata {
-  provider: string;              // "open-meteo"
-  model: string;                 // "ECMWF", "GFS", oder "auto"
+  provider: string;              // "DWD ICON-D2" oder "ECMWF"
+  model: string;                 // "ICON-D2" oder "ECMWF"
   model_run_time_utc: string;    // ISO timestamp
   data_timestamp_local: string;  // ISO timestamp in Europe/Berlin
+  fallback_used?: boolean;       // true wenn ECMWF als Fallback
 }
 
 /**
@@ -212,10 +213,11 @@ export interface FruktanResponse {
   generatedAt: string;
   emsMode: boolean;
   metadata: {
-    dataSource: string; // z.B. "Open-Meteo ECMWF"
+    dataSource: string; // z.B. "DWD ICON-D2" oder "ECMWF [Fallback]"
     modelRunTime: string; // UTC
     localTimestamp: string; // Europe/Berlin
     timezone: string;
+    fallbackUsed?: boolean; // true wenn ECMWF als Fallback aktiv
   };
   flags: string[]; // globale Flags (z.B. "stale_data")
   confidence: "normal" | "low";

@@ -250,6 +250,7 @@ const Index = () => {
           dataSource: data?.metadata.dataSource,
           localTimestamp: data?.metadata.localTimestamp,
           modelRunTime: data?.metadata.modelRunTime,
+          fallbackUsed: data?.metadata.fallbackUsed,
         }}
         fruktanNow={data?.fruktanNow}
       />

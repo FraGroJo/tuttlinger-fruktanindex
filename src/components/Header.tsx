@@ -6,6 +6,7 @@
 import { MapPin, TrendingUp, Info } from "lucide-react";
 import { Button } from "./ui/button";
 import { InfoModal } from "./InfoModal";
+import { WeatherSourceIndicator } from "./WeatherSourceIndicator";
 import {
   Tooltip,
   TooltipContent,
@@ -22,6 +23,7 @@ interface HeaderProps {
     dataSource: string;
     localTimestamp: string;
     modelRunTime?: string;
+    fallbackUsed?: boolean;
   };
   fruktanNow?: {
     score: number;
@@ -72,9 +74,18 @@ export function Header({ location, metadata, fruktanNow }: HeaderProps) {
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">
               Tuttlinger Fruktanindex
             </h1>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <MapPin className="w-3.5 h-3.5" />
-              <span>{location.name}</span>
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-3.5 h-3.5" />
+                <span>{location.name}</span>
+                <span className="text-xs opacity-60">47.969°N, 8.783°E</span>
+              </div>
+              {metadata?.dataSource && (
+                <WeatherSourceIndicator 
+                  source={metadata.dataSource}
+                  fallbackUsed={metadata.fallbackUsed}
+                />
+              )}
             </div>
           </div>
 

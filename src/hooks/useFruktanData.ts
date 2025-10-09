@@ -101,32 +101,16 @@ const CACHE_TTL = 60 * 1000; // 60 Sekunden
 let cache: Map<string, CacheEntry> = new Map();
 
 /**
- * Lädt echte Wetterdaten von Open-Meteo API
+ * Lädt Wetterdaten vom Hybrid-API-Client (ICON-D2 → ECMWF)
  */
 async function fetchWeatherData(location: LocationData, emsMode: boolean): Promise<FruktanResponse> {
-  const { lat, lon } = location;
   const now = new Date();
   
-  // ECMWF API URL (Open-Meteo) mit allen benötigten Parametern
-  const params = new URLSearchParams({
-    latitude: lat.toString(),
-    longitude: lon.toString(),
-    timezone: "Europe/Berlin",
-    hourly: "temperature_2m,relative_humidity_2m,shortwave_radiation,cloud_cover,wind_speed_10m,precipitation,et0_fao_evapotranspiration",
-    current: "temperature_2m,relative_humidity_2m,cloud_cover,wind_speed_10m,precipitation",
-    daily: "temperature_2m_max,temperature_2m_min",
-    past_days: "3",
-    forecast_days: "7",
-  });
-
-  const url = `https://api.open-meteo.com/v1/ecmwf?${params}`;
-  const response = await fetch(url, { cache: 'no-store' });
+  // Verwende den neuen Hybrid-Client
+  const { weatherApiClient } = await import('@/lib/weatherApiClient');
+  const response = await weatherApiClient.fetchWeatherData();
   
-  if (!response.ok) {
-    throw new Error(`Open-Meteo API error: ${response.statusText}`);
-  }
-
-  const data = await response.json();
+  const data = response.data;
   
   // Parse hourly data (timestamps are already in Europe/Berlin from API)
   const hourlyData = data.hourly;
@@ -157,10 +141,11 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
   const dataAge = Math.round((now.getTime() - new Date(dataTimestampLocal).getTime()) / 60000);
   
   const sourceMetadata: SourceMetadata = {
-    provider: "open-meteo",
-    model: "ECMWF", // Open-Meteo verwendet standardmäßig ECMWF
-    model_run_time_utc: now.toISOString(),
+    provider: response.source,
+    model: response.model,
+    model_run_time_utc: response.timestamp,
     data_timestamp_local: dataTimestampLocal,
+    fallback_used: response.fallbackUsed,
   };
 
   // Sammle alle hourly Daten für Parity-Hash
@@ -523,10 +508,11 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
     generatedAt: now.toISOString(),
     emsMode,
     metadata: {
-      dataSource: "Open-Meteo ECMWF",
+      dataSource: response.source,
       modelRunTime: sourceMetadata.model_run_time_utc,
       localTimestamp: now.toLocaleString("de-DE", { timeZone: "Europe/Berlin" }),
       timezone: "Europe/Berlin",
+      fallbackUsed: response.fallbackUsed,
     },
     flags: globalFlags,
     confidence: today.morning.confidence === "low" || today.noon.confidence === "low" || today.evening.confidence === "low" ? "low" : "normal",
@@ -564,23 +550,10 @@ async function fetchTrendData(location: LocationData, emsMode: boolean): Promise
   const finalMultiplier = pastureMultiplier;
   const finalOffset = pastureOffset;
   
-  const params = new URLSearchParams({
-    latitude: lat.toString(),
-    longitude: lon.toString(),
-    timezone: "Europe/Berlin",
-    hourly: "temperature_2m,relative_humidity_2m,shortwave_radiation,cloud_cover,wind_speed_10m,precipitation,et0_fao_evapotranspiration",
-    past_days: "3",
-    forecast_days: "7",
-  });
-
-  const url = `https://api.open-meteo.com/v1/ecmwf?${params}`;
-  const response = await fetch(url, { cache: 'no-store' });
-  
-  if (!response.ok) {
-    throw new Error(`Open-Meteo API error: ${response.statusText}`);
-  }
-
-  const data = await response.json();
+  // Verwende Hybrid-Client
+  const { weatherApiClient } = await import('@/lib/weatherApiClient');
+  const response = await weatherApiClient.fetchWeatherData();
+  const data = response.data;
   const hourlyData = data.hourly;
   const hourlyTimes = hourlyData.time;
   
