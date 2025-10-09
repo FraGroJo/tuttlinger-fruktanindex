@@ -117,7 +117,6 @@ async function fetchWeatherData(location: LocationData, emsMode: boolean): Promi
     daily: "temperature_2m_max,temperature_2m_min",
     past_days: "3",
     forecast_days: "7",
-    model: "ecmwf", // Wichtig: ECMWF-Modell explizit anfordern
   });
 
   const url = `https://api.open-meteo.com/v1/ecmwf?${params}`;
@@ -572,7 +571,6 @@ async function fetchTrendData(location: LocationData, emsMode: boolean): Promise
     hourly: "temperature_2m,relative_humidity_2m,shortwave_radiation,cloud_cover,wind_speed_10m,precipitation,et0_fao_evapotranspiration",
     past_days: "3",
     forecast_days: "7",
-    model: "ecmwf", // ECMWF-Modell explizit
   });
 
   const url = `https://api.open-meteo.com/v1/ecmwf?${params}`;
