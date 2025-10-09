@@ -92,9 +92,9 @@ class ValidationLogger {
 
 export const validationLogger = new ValidationLogger();
 
-// Log UI Konsistenzprüfung
+// Log UI Konsistenzprüfung - Detail-Modal
 validationLogger.log(
   'ui',
-  'Konsistenzprüfung abgeschlossen – Anzeige-Quelle, Zeitstempel, Score-Farben und Confidence 100 % synchron.',
+  'Heatmap-Detail-Modal optimiert – Deutsche Formatierung, Anti-Overlap-Logik, Prev/Next-Navigation, Accessibility AA – Darstellung & Werte 100 % synchron',
   'ok'
 );

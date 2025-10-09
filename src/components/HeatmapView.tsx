@@ -22,9 +22,43 @@ const TIME_SLOTS: { key: TimeSlot; label: string }[] = [
 
 export function HeatmapView({ days, className = "" }: HeatmapViewProps) {
   const [selectedSlot, setSelectedSlot] = useState<{
-    day: DayMatrix;
-    slot: TimeSlot;
+    dayIndex: number;
+    slotIndex: number;
   } | null>(null);
+
+  // Navigation zwischen Slots
+  const handleNavigate = (direction: "prev" | "next") => {
+    if (!selectedSlot) return;
+
+    const { dayIndex, slotIndex } = selectedSlot;
+    const totalSlots = 3; // morning, noon, evening
+    const totalDays = days.length;
+
+    let newDayIndex = dayIndex;
+    let newSlotIndex = slotIndex;
+
+    if (direction === "next") {
+      newSlotIndex++;
+      if (newSlotIndex >= totalSlots) {
+        newSlotIndex = 0;
+        newDayIndex++;
+        if (newDayIndex >= totalDays) {
+          newDayIndex = 0; // Wrap to first day
+        }
+      }
+    } else {
+      newSlotIndex--;
+      if (newSlotIndex < 0) {
+        newSlotIndex = totalSlots - 1;
+        newDayIndex--;
+        if (newDayIndex < 0) {
+          newDayIndex = totalDays - 1; // Wrap to last day
+        }
+      }
+    }
+
+    setSelectedSlot({ dayIndex: newDayIndex, slotIndex: newSlotIndex });
+  };
 
   const getRiskColor = (level: string, score: number): string => {
     switch (level) {
@@ -147,7 +181,12 @@ export function HeatmapView({ days, className = "" }: HeatmapViewProps) {
                   return (
                     <button
                       key={key}
-                      onClick={() => setSelectedSlot({ day, slot: key })}
+                      onClick={() =>
+                        setSelectedSlot({
+                          dayIndex,
+                          slotIndex: TIME_SLOTS.findIndex((s) => s.key === key),
+                        })
+                      }
                       className={`aspect-square min-h-[60px] md:min-h-[80px] rounded-lg ${getRiskColor(
                         slot.level,
                         slot.score
@@ -257,9 +296,10 @@ export function HeatmapView({ days, className = "" }: HeatmapViewProps) {
       {/* Detail Modal */}
       {selectedSlot && (
         <DetailModal
-          day={selectedSlot.day}
-          slot={selectedSlot.slot}
+          day={days[selectedSlot.dayIndex]}
+          slot={TIME_SLOTS[selectedSlot.slotIndex].key}
           onClose={() => setSelectedSlot(null)}
+          onNavigate={handleNavigate}
         />
       )}
     </>
