@@ -105,3 +105,10 @@ validationLogger.log(
   'Überblick-Ansicht optimiert – KPIs, Gründe, Visuals 100 % konsistent | Dynamische Microcopy | Empfehlungen je Level | Anti-Overlap Temperatur-Spektrum',
   'ok'
 );
+
+// Log Temperatur-Spektrum Neustrukturierung
+validationLogger.log(
+  'ui',
+  'Temperatur-Spektrum neu strukturiert – 100 % konsistent & ohne Overlaps | Zweizeilige Struktur | Leader-Lines | Werte-Kapseln | Responsive & A11y AA',
+  'ok'
+);

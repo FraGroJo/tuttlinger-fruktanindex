@@ -28,6 +28,7 @@ import {
   X,
   Info,
 } from "lucide-react";
+import { TemperatureSpectrum } from "./TemperatureSpectrum";
 import type { DayMatrix, TimeSlot, TimeSlotScore } from "@/types/fruktan";
 import {
   formatTemperature,
@@ -490,127 +491,11 @@ export function DetailModal({
                 {/* C) Visuals (rechts) */}
                 <div className="space-y-6">
                   {/* Temperatur-Spektrum */}
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Thermometer className="w-5 h-5 text-muted-foreground" />
-                      <h4 className="text-base font-semibold">
-                        Temperatur-Spektrum
-                      </h4>
-                    </div>
-
-                    {/* Gradient Bar with Markers */}
-                    <div
-                      className="relative h-12 bg-gradient-to-r from-blue-400 via-yellow-300 to-red-400 rounded-lg"
-                      aria-description="Temperatur-Spektrum mit Min/Median/Max-Markern"
-                    >
-                      {hasOverlap ? (
-                        // Stacked labels to prevent overlap
-                        <>
-                          <div
-                            className="absolute top-0 bottom-0 flex flex-col items-center justify-center"
-                            style={{ left: `${minPos}%` }}
-                          >
-                            <div className="w-0.5 h-full bg-gray-800"></div>
-                            <div className="absolute -top-8 text-xs font-semibold whitespace-nowrap">
-                              {formatTemperature(tempSpectrum.min, 1)}
-                            </div>
-                            <div className="absolute -top-14 text-[10px] text-muted-foreground">
-                              Min
-                            </div>
-                          </div>
-                          <div
-                            className="absolute top-0 bottom-0 flex flex-col items-center justify-center"
-                            style={{ left: `${medianPos}%` }}
-                          >
-                            <div className="w-0.5 h-full bg-gray-900"></div>
-                            <div className="absolute -top-8 text-xs font-semibold whitespace-nowrap">
-                              {formatTemperature(tempSpectrum.median, 1)}
-                            </div>
-                            <div className="absolute -top-14 text-[10px] text-muted-foreground">
-                              Median
-                            </div>
-                          </div>
-                          <div
-                            className="absolute top-0 bottom-0 flex flex-col items-center justify-center"
-                            style={{ left: `${maxPos}%` }}
-                          >
-                            <div className="w-0.5 h-full bg-gray-800"></div>
-                            <div className="absolute -top-8 text-xs font-semibold whitespace-nowrap">
-                              {formatTemperature(tempSpectrum.max, 1)}
-                            </div>
-                            <div className="absolute -top-14 text-[10px] text-muted-foreground">
-                              Max
-                            </div>
-                          </div>
-                        </>
-                      ) : (
-                        // Normal inline labels
-                        <>
-                          <div
-                            className="absolute top-0 bottom-0 flex flex-col items-center justify-center"
-                            style={{ left: `${minPos}%` }}
-                          >
-                            <div className="w-0.5 h-full bg-gray-800"></div>
-                            <div className="absolute -top-6 text-xs font-semibold whitespace-nowrap">
-                              Min: {formatTemperature(tempSpectrum.min, 1)}
-                            </div>
-                          </div>
-                          <div
-                            className="absolute top-0 bottom-0 flex flex-col items-center justify-center"
-                            style={{ left: `${medianPos}%` }}
-                          >
-                            <div className="w-0.5 h-full bg-gray-900"></div>
-                            <div className="absolute -top-6 text-xs font-semibold whitespace-nowrap">
-                              Median:{" "}
-                              {formatTemperature(tempSpectrum.median, 1)}
-                            </div>
-                          </div>
-                          <div
-                            className="absolute top-0 bottom-0 flex flex-col items-center justify-center"
-                            style={{ left: `${maxPos}%` }}
-                          >
-                            <div className="w-0.5 h-full bg-gray-800"></div>
-                            <div className="absolute -top-6 text-xs font-semibold whitespace-nowrap">
-                              Max: {formatTemperature(tempSpectrum.max, 1)}
-                            </div>
-                          </div>
-                        </>
-                      )}
-                    </div>
-
-                    {/* Scale Labels */}
-                    <div className="flex justify-between text-xs text-muted-foreground px-1">
-                      <span>−20 °C</span>
-                      <span>0 °C</span>
-                      <span>40 °C</span>
-                    </div>
-
-                    <div className="text-sm text-muted-foreground text-center">
-                      Spanne: {formatTemperature(range, 1)}
-                    </div>
-
-                    {/* Mini-Datenzeile */}
-                    <div className="grid grid-cols-3 gap-2 text-xs">
-                      <div className="text-center">
-                        <div className="font-semibold">
-                          {formatTemperature(tempSpectrum.min, 1)}
-                        </div>
-                        <div className="text-muted-foreground">Minimum</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="font-semibold">
-                          {formatTemperature(tempSpectrum.median, 1)}
-                        </div>
-                        <div className="text-muted-foreground">Median</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="font-semibold">
-                          {formatTemperature(tempSpectrum.max, 1)}
-                        </div>
-                        <div className="text-muted-foreground">Maximum</div>
-                      </div>
-                    </div>
-                  </div>
+                  <TemperatureSpectrum
+                    min={tempSpectrum.min}
+                    median={tempSpectrum.median}
+                    max={tempSpectrum.max}
+                  />
                 </div>
               </div>
             </TabsContent>
