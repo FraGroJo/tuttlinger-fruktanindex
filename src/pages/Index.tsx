@@ -16,7 +16,7 @@ import { DataQualityBanner } from "@/components/DataQualityBanner";
 import { RiskLegend } from "@/components/RiskLegend";
 import { ScoreDebugger } from "@/components/ScoreDebugger";
 import { SystemValidationPanel } from "@/components/SystemValidationPanel";
-import { SystemStatusCard } from "@/components/SystemStatusCard";
+
 import { useFruktanData } from "@/hooks/useFruktanData";
 import { useHorses } from "@/hooks/useHorses";
 import { Loader2, Download, FileText } from "lucide-react";
@@ -259,17 +259,15 @@ const Index = () => {
 
       <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-6">
+          <TabsList className="grid w-full grid-cols-5 mb-6">
             <TabsTrigger value="matrix">Fruktan-Matrix</TabsTrigger>
             <TabsTrigger value="pasture">Weidestand</TabsTrigger>
             <TabsTrigger value="horses">Offenstall Pferde</TabsTrigger>
+            <TabsTrigger value="systemstatus">Systemstatus</TabsTrigger>
             <TabsTrigger value="validation">System-Validierung</TabsTrigger>
           </TabsList>
 
           <TabsContent value="matrix" className="space-y-4 sm:space-y-6 md:space-y-8">
-            {/* System Status Card - Phase 3 */}
-            <SystemStatusCard />
-
             {/* Data Quality Banner */}
             <DataQualityBanner
               confidence={data.confidence || 'normal'}
@@ -471,6 +469,19 @@ const Index = () => {
                 </div>
               </>
             )}
+          </TabsContent>
+
+          <TabsContent value="systemstatus" className="space-y-6">
+            {/* Systemstatus wird in eigener Route /systemstatus angezeigt */}
+            <div className="text-center py-12 space-y-4">
+              <p className="text-lg font-medium">Systemstatus</p>
+              <p className="text-muted-foreground">
+                Die Systemstatus-Seite wurde in einen eigenen Bereich verschoben.
+              </p>
+              <Button onClick={() => window.location.href = '/systemstatus'}>
+                Zum Systemstatus
+              </Button>
+            </div>
           </TabsContent>
 
           <TabsContent value="validation" className="space-y-6">
