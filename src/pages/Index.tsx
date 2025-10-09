@@ -247,10 +247,6 @@ const Index = () => {
     );
   }
 
-  // Übergebe Confidence pro Tag aus Monitoring-Report
-  const confidenceByDay = report?.confidenceByDay || Array(7).fill(75);
-  const confidenceBreakdown = report?.confidenceBreakdown;
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       <Header
@@ -354,6 +350,7 @@ const Index = () => {
                   data.dayFive,
                   data.daySix,
                 ]}
+                dataSource={dataSource || 'ICON-D2'}
               />
             </section>
 

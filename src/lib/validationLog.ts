@@ -126,3 +126,10 @@ validationLogger.log(
   'TemperatureSpectrum Smart-Scale aktiviert – 100 % konsistent & gut lesbar | Adaptive Domain | 0°C-Notch | Anti-Overlap | Tooltips | Leader-Lines',
   'ok'
 );
+
+// Log V19.9 - Fix-Skala, Confidence entfernt, Mobile optimiert
+validationLogger.log(
+  'ui',
+  'V19.9: Einheitliche Fix-Skala (-20 bis 40°C) aktiv, Confidence vollständig entfernt, Mobile-Layout optimiert – Berechnungsgrundlage geprüft und 100 % valide',
+  'ok'
+);

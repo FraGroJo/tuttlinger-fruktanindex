@@ -31,7 +31,6 @@ import { validationLogger } from "@/lib/validationLog";
 import { WeatherSourceIndicator } from "@/components/WeatherSourceIndicator";
 import { RiskLegend } from "@/components/RiskLegend";
 import { DEFAULT_LOCATION } from "@/types/fruktan";
-import { ConfidenceBar, ConfidenceChip } from "@/components/ConfidenceChip";
 import { formatTemperature, formatPercent } from "@/lib/formatters";
 import {
   Tooltip,
@@ -76,20 +75,6 @@ export default function SystemStatus() {
     }
   };
 
-  const getConfidenceBadge = () => {
-    const score = report?.confidenceScore || 0;
-    return <ConfidenceChip score={score} breakdown={report?.confidenceBreakdown} />;
-  };
-
-  const getDataQuality = () => {
-    const score = report?.confidenceScore || 0;
-    return {
-      confidence: score,
-      score,
-      text: score >= 75 ? 'Hoch' : score >= 50 ? 'Mittel' : 'Niedrig',
-    };
-  };
-
   const handleManualCheck = async () => {
     if (isChecking) return;
     setIsChecking(true);
@@ -99,7 +84,6 @@ export default function SystemStatus() {
     // Log consistency check
     validationLogger.info("manual_system_check_completed", {
       status: status.color,
-      confidence: status.confidence,
     });
   };
 
@@ -197,22 +181,6 @@ export default function SystemStatus() {
                         })}
                       </div>
                     )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Confidence */}
-              <div>
-                <div className="text-sm text-muted-foreground mb-1">
-                  Confidence
-                </div>
-                <div aria-label={`Confidence ${getDataQuality().score} von 100`}>
-                  {getConfidenceBadge()}
-                  <div className="mt-2">
-                    <ConfidenceBar 
-                      score={getDataQuality().score} 
-                      breakdown={report?.confidenceBreakdown}
-                    />
                   </div>
                 </div>
               </div>
