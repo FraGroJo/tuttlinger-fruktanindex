@@ -1,70 +1,69 @@
 /**
- * Banner für Datenqualitätsstatus
+ * Phase 2: Banner für Datenqualität und Validierungsstatus
  */
 
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, AlertTriangle, CheckCircle, WifiOff } from 'lucide-react';
-import { logger } from '@/lib/logger';
+import { AlertTriangle, CheckCircle, Clock } from "lucide-react";
+import { Alert, AlertDescription } from "./ui/alert";
 
 interface DataQualityBannerProps {
-  integrity: 'ok' | 'degraded';
-  apiSyncError: boolean;
-  serviceUnavailable: boolean;
+  confidence: 'normal' | 'low';
   source: string;
+  fallbackUsed?: boolean;
+  validationStatus?: 'validating' | 'ok' | 'error';
 }
 
-export function DataQualityBanner({
-  integrity,
-  apiSyncError,
-  serviceUnavailable,
-  source,
+export function DataQualityBanner({ 
+  confidence, 
+  source, 
+  fallbackUsed,
+  validationStatus = 'ok' 
 }: DataQualityBannerProps) {
-  const recentFallbacks = logger.getRecentFallbacks(12).length;
-  const showInstabilityWarning = recentFallbacks >= 3;
-
-  if (serviceUnavailable) {
+  
+  // Validierung läuft
+  if (validationStatus === 'validating') {
     return (
-      <Alert variant="destructive" className="mb-4">
-        <WifiOff className="h-4 w-4" />
-        <AlertDescription className="ml-2">
-          <strong>Datenquelle nicht erreichbar</strong> – Die ECMWF-Daten können derzeit nicht
-          abgerufen werden. Bitte versuchen Sie es später erneut.
+      <Alert className="border-warning/50 bg-warning/10">
+        <Clock className="h-4 w-4" />
+        <AlertDescription>
+          🕓 Werte werden geprüft – Ergebnis folgt in &lt; 60 s
         </AlertDescription>
       </Alert>
     );
   }
 
-  if (apiSyncError && integrity === 'degraded') {
+  // Fallback aktiv
+  if (fallbackUsed) {
     return (
-      <Alert variant="default" className="mb-4 border-yellow-500 bg-yellow-50 text-yellow-900">
-        <AlertTriangle className="h-4 w-4 text-yellow-600" />
-        <AlertDescription className="ml-2">
-          <strong>Echtzeitdaten eingeschränkt</strong> – Zeige letzten validierten Stand.{' '}
-          <span className="text-xs">({source})</span>
+      <Alert className="border-warning/50 bg-warning/10">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertDescription>
+          ⚠️ Fallback-Modell aktiv – Daten werden validiert
         </AlertDescription>
       </Alert>
     );
   }
 
-  if (showInstabilityWarning) {
+  // Low Confidence
+  if (confidence === 'low') {
     return (
-      <Alert variant="destructive" className="mb-4">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription className="ml-2">
-          <strong>ECMWF-Quelle instabil</strong> – {recentFallbacks} Fallbacks in den letzten 12
-          Stunden. Bitte Systemcheck durchführen.
+      <Alert className="border-warning/50 bg-warning/10">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertDescription>
+          ⚠️ Abweichungen zwischen Modellen erkannt – reduzierte Konfidenz
         </AlertDescription>
       </Alert>
     );
   }
 
-  // Success state - optional subtle indicator
-  if (integrity === 'ok') {
+  // Alles OK - ICON-D2 aktiv
+  if (source.includes('ICON-D2')) {
     return (
-      <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
-        <CheckCircle className="h-3 w-3 text-green-600" />
-        <span>Live-Daten synchronisiert – {source}</span>
-      </div>
+      <Alert className="border-success/50 bg-success/10">
+        <CheckCircle className="h-4 w-4" />
+        <AlertDescription>
+          ✅ Datenquelle ICON-D2 [DWD 2.2 km] – Integrität OK
+        </AlertDescription>
+      </Alert>
     );
   }
 

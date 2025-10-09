@@ -267,10 +267,10 @@ const Index = () => {
           <TabsContent value="matrix" className="space-y-4 sm:space-y-6 md:space-y-8">
             {/* Data Quality Banner */}
             <DataQualityBanner
-              integrity={dataIntegrity}
-              apiSyncError={apiSyncError}
-              serviceUnavailable={serviceUnavailable}
+              confidence={data.confidence || 'normal'}
               source={dataSource}
+              fallbackUsed={data.metadata?.fallbackUsed}
+              validationStatus="ok"
             />
 
             {/* Current Conditions */}

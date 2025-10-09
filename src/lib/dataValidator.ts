@@ -1,13 +1,33 @@
 /**
- * Umfassende Datenvalidierung für ECMWF-Wetterdaten
+ * Umfassende Datenvalidierung für Wetterdaten (ICON-D2 / ECMWF)
+ * Phase 2: Integritätsprüfung, Modellvergleich und Score-Validierung
  */
 
 import { logger } from './logger';
+import { calculateScore, getRiskLevel } from './scoring';
+import type { ScoringInput } from './scoring';
+import type { RiskLevel } from '@/types/fruktan';
 
-interface ValidationResult {
+export interface ValidationResult {
   valid: boolean;
   errors: string[];
   warnings: string[];
+  confidence?: 'normal' | 'low';
+}
+
+export interface ModelComparisonResult {
+  tempDelta: number;
+  humidityDelta: number;
+  radiationDelta: number;
+  consistent: boolean;
+  confidence: 'normal' | 'low';
+}
+
+export interface ScoreValidationResult {
+  expected: number;
+  actual: number;
+  deviation: number;
+  withinTolerance: boolean;
 }
 
 interface HourlyData {
@@ -256,6 +276,193 @@ export class DataValidator {
     if (maxGap > 3) {
       result.warnings.push(`Längste Datenlücke: ${maxGap} aufeinanderfolgende Stunden`);
     }
+  }
+
+  /**
+   * Phase 2: Vergleicht ICON-D2 und ECMWF Daten
+   */
+  compareModels(iconData: any, ecmwfData: any): ModelComparisonResult {
+    const result: ModelComparisonResult = {
+      tempDelta: 0,
+      humidityDelta: 0,
+      radiationDelta: 0,
+      consistent: true,
+      confidence: 'normal',
+    };
+
+    try {
+      if (!iconData?.hourly || !ecmwfData?.hourly) {
+        logger.warn('model_comparison_incomplete', { 
+          hasIcon: !!iconData?.hourly, 
+          hasEcmwf: !!ecmwfData?.hourly 
+        });
+        return result;
+      }
+
+      const iconHourly = iconData.hourly;
+      const ecmwfHourly = ecmwfData.hourly;
+
+      // Vergleiche überlappende Zeiträume (erste 168h = 7 Tage Prognose)
+      const compareLength = Math.min(168, iconHourly.time?.length || 0, ecmwfHourly.time?.length || 0);
+
+      if (compareLength < 24) {
+        logger.warn('model_comparison_insufficient_data', { compareLength });
+        return result;
+      }
+
+      // Berechne durchschnittliche Abweichungen
+      let tempSum = 0, humSum = 0, radSum = 0;
+      let validCount = 0;
+
+      for (let i = 0; i < compareLength; i++) {
+        const iconTemp = iconHourly.temperature_2m?.[i];
+        const ecmwfTemp = ecmwfHourly.temperature_2m?.[i];
+        const iconHum = iconHourly.relative_humidity_2m?.[i];
+        const ecmwfHum = ecmwfHourly.relative_humidity_2m?.[i];
+        const iconRad = iconHourly.shortwave_radiation?.[i];
+        const ecmwfRad = ecmwfHourly.shortwave_radiation?.[i];
+
+        if (iconTemp != null && ecmwfTemp != null) {
+          tempSum += Math.abs(iconTemp - ecmwfTemp);
+          validCount++;
+        }
+        if (iconHum != null && ecmwfHum != null) {
+          humSum += Math.abs(iconHum - ecmwfHum);
+        }
+        if (iconRad != null && ecmwfRad != null) {
+          radSum += Math.abs(iconRad - ecmwfRad);
+        }
+      }
+
+      if (validCount > 0) {
+        result.tempDelta = tempSum / validCount;
+        result.humidityDelta = humSum / validCount;
+        result.radiationDelta = radSum / validCount;
+
+        // Konsistenzprüfung: ΔT > 1.5°C oder ΔRH > 10%
+        if (result.tempDelta > 1.5 || result.humidityDelta > 10) {
+          result.consistent = false;
+          result.confidence = 'low';
+          logger.warn('model_comparison_inconsistent', {
+            tempDelta: result.tempDelta.toFixed(2),
+            humidityDelta: result.humidityDelta.toFixed(2),
+          });
+        } else {
+          logger.info('model_comparison_consistent', {
+            tempDelta: result.tempDelta.toFixed(2),
+            humidityDelta: result.humidityDelta.toFixed(2),
+          });
+        }
+      }
+
+    } catch (error) {
+      logger.error('model_comparison_error', { error: String(error) });
+    }
+
+    return result;
+  }
+
+  /**
+   * Phase 2: Validiert Score-Berechnungen
+   */
+  validateScoreCalculation(
+    input: ScoringInput,
+    actualScore: number,
+    emsMode: boolean = false
+  ): ScoreValidationResult {
+    const expected = calculateScore(input);
+    const deviation = Math.abs(expected - actualScore);
+    const tolerance = 0.5; // 0.5% Toleranz
+
+    const result: ScoreValidationResult = {
+      expected,
+      actual: actualScore,
+      deviation,
+      withinTolerance: deviation <= tolerance,
+    };
+
+    if (!result.withinTolerance) {
+      logger.warn('score_validation_mismatch', {
+        slot: input.slot,
+        expected,
+        actual: actualScore,
+        deviation: deviation.toFixed(2),
+      });
+    }
+
+    return result;
+  }
+
+  /**
+   * Phase 2: Validiert NSC-Berechnungen
+   */
+  validateNSCCalculation(
+    horseMass: number,
+    isEMS: boolean,
+    hayKg: number,
+    hayNSC: number,
+    expectedNSCAllowance: number,
+    tolerance: number = 5 // 5% Toleranz
+  ): { valid: boolean; deviation: number } {
+    const budget = isEMS ? 8 * horseMass : 12 * horseMass;
+    const hayDM = hayKg * 0.897;
+    const hayNSCg = hayDM * (hayNSC / 100) * 1000;
+    const calculated = budget - hayNSCg;
+    const deviation = Math.abs((calculated - expectedNSCAllowance) / calculated * 100);
+
+    const valid = deviation <= tolerance;
+
+    if (!valid) {
+      logger.warn('nsc_calculation_mismatch', {
+        horseMass,
+        isEMS,
+        calculated: calculated.toFixed(2),
+        expected: expectedNSCAllowance.toFixed(2),
+        deviation: deviation.toFixed(2),
+      });
+    }
+
+    return { valid, deviation };
+  }
+
+  /**
+   * Phase 2: Vollständige Integritätsprüfung
+   */
+  validateIntegrity(data: any): ValidationResult {
+    const result = this.validateWeatherData(data);
+
+    // Zusätzliche Zeitzonenprüfung
+    if (data.current_weather?.time) {
+      const currentWeatherTime = new Date(data.current_weather.time);
+      const now = new Date();
+      const diffMinutes = Math.abs(now.getTime() - currentWeatherTime.getTime()) / (1000 * 60);
+
+      if (diffMinutes > MAX_TIMESTAMP_DRIFT_MINUTES) {
+        result.warnings.push(
+          `Zeitversatz current_weather: ${diffMinutes.toFixed(0)} min (> ${MAX_TIMESTAMP_DRIFT_MINUTES} min)`
+        );
+        result.confidence = 'low';
+      }
+    }
+
+    // Prüfe Zeitzone
+    if (data.timezone && data.timezone !== 'Europe/Berlin') {
+      result.warnings.push(`Unerwartete Zeitzone: ${data.timezone} (erwartet: Europe/Berlin)`);
+    }
+
+    if (result.valid) {
+      logger.info('integrity_check_passed', { 
+        hours: data.hourly?.time?.length || 0,
+        confidence: result.confidence || 'normal'
+      });
+    } else {
+      logger.error('integrity_check_failed', { 
+        errors: result.errors,
+        warnings: result.warnings 
+      });
+    }
+
+    return result;
   }
 }
 
