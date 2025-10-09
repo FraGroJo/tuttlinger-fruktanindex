@@ -7,7 +7,7 @@ export interface LogEntry {
   level: 'info' | 'warn' | 'error';
   event: string;
   details: Record<string, any>;
-  category?: 'sync' | 'validation' | 'calculation' | 'system';
+  category?: 'sync' | 'validation' | 'calculation' | 'system' | 'consistency';
 }
 
 const MAX_LOG_ENTRIES = 100; // Phase 2: Erhöht auf 100
@@ -97,6 +97,9 @@ class Logger {
     }
     if (event.includes('score') || event.includes('nsc') || event.includes('calculation')) {
       return 'calculation';
+    }
+    if (event.includes('consistency') || event.includes('source_label') || event.includes('badge')) {
+      return 'consistency';
     }
     return 'system';
   }

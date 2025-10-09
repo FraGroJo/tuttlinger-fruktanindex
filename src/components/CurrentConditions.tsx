@@ -2,6 +2,7 @@ import { type CurrentConditions, type SourceMetadata } from "@/types/fruktan";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Cloud, Droplets, Wind, Thermometer, TrendingUp } from "lucide-react";
+import { WeatherSourceIndicator } from "./WeatherSourceIndicator";
 
 interface CurrentConditionsProps {
   current: CurrentConditions;
@@ -66,11 +67,14 @@ export function CurrentConditions({ current, source, flags = [], fruktanNow }: C
               </div>
               <div>
                 <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground tracking-tight">Aktuelle Bedingungen</h2>
-                {source.data_timestamp_local && (
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    Stand: {formatTime(source.data_timestamp_local)} Uhr
-                  </p>
-                )}
+                <div className="flex items-center gap-2 mt-1">
+                  {source.data_timestamp_local && (
+                    <p className="text-xs sm:text-sm text-muted-foreground">
+                      Stand: {formatTime(source.data_timestamp_local)} Uhr
+                    </p>
+                  )}
+                  <WeatherSourceIndicator source={source} />
+                </div>
               </div>
             </div>
             

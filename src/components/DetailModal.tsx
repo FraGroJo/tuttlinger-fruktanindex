@@ -29,7 +29,8 @@ import {
   Info,
 } from "lucide-react";
 import { TemperatureSpectrum } from "./TemperatureSpectrum";
-import type { DayMatrix, TimeSlot, TimeSlotScore } from "@/types/fruktan";
+import { WeatherSourceIndicator } from "./WeatherSourceIndicator";
+import type { DayMatrix, TimeSlot, TimeSlotScore, SourceMetadata } from "@/types/fruktan";
 import {
   formatTemperature,
   formatPercent,
@@ -43,7 +44,7 @@ interface DetailModalProps {
   slot: TimeSlot;
   onClose: () => void;
   onNavigate?: (direction: "prev" | "next") => void;
-  dataSource?: string;
+  sourceMetadata?: SourceMetadata; // SSOT für Wetterquelle
 }
 
 const SLOT_LABELS: Record<TimeSlot, string> = {
@@ -59,7 +60,7 @@ export function DetailModal({
   slot,
   onClose,
   onNavigate,
-  dataSource = "ICON-D2",
+  sourceMetadata,
 }: DetailModalProps) {
   const [showRawData, setShowRawData] = useState(false);
   const slotData = day[slot] as TimeSlotScore;
@@ -131,12 +132,15 @@ export function DetailModal({
                 </DialogTitle>
                 <DialogDescription
                   id="detail-modal-description"
-                  className="text-sm text-muted-foreground mt-1"
+                  className="text-sm text-muted-foreground mt-1 flex items-center gap-2"
                 >
-                  Stand {formatTime(new Date())} · Quelle{" "}
-                  <Badge variant="outline" className="ml-1">
-                    {dataSource}
-                  </Badge>
+                  Stand {formatTime(new Date())}
+                  {sourceMetadata && (
+                    <>
+                      {" · "}
+                      <WeatherSourceIndicator source={sourceMetadata} />
+                    </>
+                  )}
                 </DialogDescription>
               </div>
 
@@ -235,9 +239,9 @@ export function DetailModal({
                       {formatWind(slotData.raw?.wind_avg || 0, 1)}
                     </span>
                   </div>
-                  <Badge variant="outline" className="px-3 py-1.5 text-sm">
-                    {dataSource}
-                  </Badge>
+                  {sourceMetadata && (
+                    <WeatherSourceIndicator source={sourceMetadata} />
+                  )}
                 </div>
 
                 {/* Subline */}

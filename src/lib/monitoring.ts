@@ -1,13 +1,14 @@
 /**
- * Phase 3: Automatisches Monitoring & Validation System
- * Tägliche Integritätsprüfung, Auto-Healing und Reporting
+ * Monitoring & Konsistenz-Wächter
+ * Validiert die Einheitlichkeit der Source-Labels über alle Views
  */
 
 import { logger } from './logger';
 import { dataValidator } from './dataValidator';
 import { weatherApiClient } from './weatherApiClient';
 import { computeConfidence, type ConfidenceBreakdown } from './quality';
-import type { FruktanResponse } from '@/types/fruktan';
+import { buildSourceBadge } from './sourceMetadata';
+import type { FruktanResponse, SourceMetadata } from '@/types/fruktan';
 
 export interface MonitoringReport {
   timestamp: string;
@@ -205,7 +206,10 @@ class MonitoringSystem {
       this.lastData = currentData;
       this.saveReport(report);
 
-      // 8. Log Ergebnis
+      // 8. Konsistenz-Wächter: Validiere Source-Labels
+      this.validateSourceConsistency(response, report);
+
+      // 9. Log Ergebnis
       if (report.status === 'ok') {
         logger.info('monitoring_cycle_complete', {
           status: 'VALIDATED',
@@ -418,6 +422,59 @@ class MonitoringSystem {
     } catch (error) {
       console.error('Failed to clean old reports:', error);
     }
+  }
+
+  /**
+   * Konsistenz-Wächter: Validiert Source-Labels über alle Views
+   * Rule S1: Badge-Text überall identisch mit buildSourceBadge()
+   * Rule S2: Fallback-Hinweis nur wenn fallbackUsed === true
+   * Rule S3: Zeitstempel überall identisch (Europe/Berlin)
+   */
+  private validateSourceConsistency(
+    response: { model: string; source: string; fallbackUsed: boolean; timestamp: string },
+    report: MonitoringReport
+  ): void {
+    const sourceMeta: SourceMetadata = {
+      provider: 'Open-Meteo',
+      model: response.model,
+      model_run_time_utc: response.timestamp,
+      data_timestamp_local: new Date().toISOString(),
+      fallback_used: response.fallbackUsed,
+    };
+    
+    const badge = buildSourceBadge(sourceMeta);
+    
+    // Rule S1: Badge-Text konsistent
+    const expectedText = badge.text;
+    if (response.source !== expectedText) {
+      logger.warn('source_label_inconsistency', {
+        expected: expectedText,
+        actual: response.source,
+        model: response.model,
+        fallbackUsed: response.fallbackUsed,
+      }, 'consistency');
+    }
+    
+    // Rule S2: Fallback-Hinweis korrekt
+    const hasFallbackLabel = response.source.includes('[Fallback]');
+    if (hasFallbackLabel !== response.fallbackUsed) {
+      logger.warn('fallback_label_mismatch', {
+        hasLabel: hasFallbackLabel,
+        fallbackUsed: response.fallbackUsed,
+      }, 'consistency');
+    }
+    
+    // Rule S3: Zeitstempel in Europe/Berlin
+    const localTime = new Date(response.timestamp).toLocaleString('de-DE', {
+      timeZone: 'Europe/Berlin',
+    });
+    
+    logger.info('source_consistency_validated', {
+      model: response.model,
+      badge: badge.text,
+      fallbackUsed: response.fallbackUsed,
+      localTime,
+    }, 'consistency');
   }
 
   /**

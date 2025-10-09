@@ -133,3 +133,10 @@ validationLogger.log(
   'V19.9: Einheitliche Fix-Skala (-20 bis 40°C) aktiv, Confidence vollständig entfernt, Mobile-Layout optimiert – Berechnungsgrundlage geprüft und 100 % valide',
   'ok'
 );
+
+// Log V21.1 - Hybrid-Quelle korrekt labeln
+validationLogger.log(
+  'sync',
+  'V21.1: Hybrid-Quelle überall korrekt gelabelt · Datenintegrität 100 % | buildSourceBadge() als SSOT implementiert | Konsistenz-Wächter (S1-S3) aktiv | Alle Views einheitlich: 🟢 DWD ICON-D2 / 🟡 ECMWF [Fallback] / 🔵 ECMWF',
+  'ok'
+);

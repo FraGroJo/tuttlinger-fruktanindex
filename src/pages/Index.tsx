@@ -340,7 +340,7 @@ const Index = () => {
 
             {/* Heatmap-View (7 Tage × 3 Fenster) */}
             <section>
-              <HeatmapView 
+              <HeatmapView
                 days={[
                   data.today,
                   data.tomorrow,
@@ -350,7 +350,7 @@ const Index = () => {
                   data.dayFive,
                   data.daySix,
                 ]}
-                dataSource={dataSource || 'ICON-D2'}
+                sourceMetadata={data.source}
               />
             </section>
 
