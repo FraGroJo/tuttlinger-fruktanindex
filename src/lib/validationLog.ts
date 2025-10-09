@@ -119,3 +119,10 @@ validationLogger.log(
   'Confidence-Score dynamisch berechnet – 100 % valide & konsistent | Faktoren: Vollständigkeit, Aktualität, Modellkonsistenz, Fallback, Horizont, Validierung',
   'ok'
 );
+
+// Log TemperatureSpectrum Smart-Scale
+validationLogger.log(
+  'ui',
+  'TemperatureSpectrum Smart-Scale aktiviert – 100 % konsistent & gut lesbar | Adaptive Domain | 0°C-Notch | Anti-Overlap | Tooltips | Leader-Lines',
+  'ok'
+);
