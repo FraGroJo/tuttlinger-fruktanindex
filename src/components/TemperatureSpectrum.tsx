@@ -28,9 +28,9 @@ interface PinPosition {
   type: 'min' | 'median' | 'max';
 }
 
-// Fix Domain: -20 bis 40°C (überall identisch)
-const DOMAIN_MIN = -20;
-const DOMAIN_MAX = 40;
+// Fix Domain: -10 bis 30°C (überall identisch)
+const DOMAIN_MIN = -10;
+const DOMAIN_MAX = 30;
 const DOMAIN_RANGE = DOMAIN_MAX - DOMAIN_MIN;
 
 export function TemperatureSpectrum({ min, median, max }: TemperatureSpectrumProps) {
@@ -54,12 +54,12 @@ export function TemperatureSpectrum({ min, median, max }: TemperatureSpectrumPro
   // 0°C Notch Position (immer sichtbar)
   const zeroPercent = calcPercent(0);
 
-  // Generate ticks: Desktop: -20/-10/0/10/20/30/40; Mobile: -20/0/20/40
+  // Generate ticks: Desktop: -10/0/10/20/30; Mobile: -10/10/30
   const generateTicks = (): number[] => {
     if (isMobile) {
-      return [-20, 20, 40]; // 0°C ist Notch
+      return [-10, 10, 30]; // 0°C ist Notch
     }
-    return [-20, -10, 10, 20, 30, 40]; // Desktop, 0°C ist Notch
+    return [-10, 10, 20, 30]; // Desktop, 0°C ist Notch
   };
 
   const ticks = generateTicks();
@@ -251,9 +251,9 @@ export function TemperatureSpectrum({ min, median, max }: TemperatureSpectrumPro
 
           {/* Axis Labels */}
           <div className="flex justify-between text-[10px] sm:text-xs text-muted-foreground mt-8 px-1">
-            <span>−20 °C</span>
-            <span>20 °C</span>
-            <span>40 °C</span>
+            <span>−10 °C</span>
+            <span>10 °C</span>
+            <span>30 °C</span>
           </div>
         </div>
 
