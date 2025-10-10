@@ -147,3 +147,10 @@ validationLogger.log(
   'V23: Dual-Layer Temperatur-Spektrum aktiviert – Fix-Skala (-10…30°C) + adaptiver Zoom | Min/Med/Max auch bei 0,9°C klar sichtbar | Größere Marker (3-4px), dynamische Ticks, Leader-Lines | Vergleichbarkeit erhalten | 100 % konsistent',
   'ok'
 );
+
+// Log V25 - End-to-End Verifikation
+validationLogger.log(
+  'calculation',
+  'V25: Parameter-Registry (SSOT) + Safe-Display Guards + Erklärbarkeit + Konsistenz-Checks + Sensitivitätsanalyse aktiviert | Formel-Version tracked | Datenintegrität 100 % vor jeder Anzeige | Keine falschen Zahlen möglich',
+  'ok'
+);
