@@ -261,14 +261,29 @@ const Index = () => {
         fruktanNow={data?.fruktanNow}
       />
 
-      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8">
+      <main className="container mx-auto px-2 sm:px-4 lg:px-6 py-3 sm:py-4 md:py-6 lg:py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-6">
-            <TabsTrigger value="matrix">Fruktan-Matrix</TabsTrigger>
-            <TabsTrigger value="pasture">Weidestand</TabsTrigger>
-            <TabsTrigger value="horses">Offenstall Pferde</TabsTrigger>
-            <TabsTrigger value="systemstatus">Systemstatus</TabsTrigger>
-            <TabsTrigger value="validation">System-Validierung</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1 mb-4 sm:mb-6 h-auto p-1">
+            <TabsTrigger value="matrix" className="text-xs sm:text-sm py-2 sm:py-2.5">
+              <span className="hidden sm:inline">Fruktan-Matrix</span>
+              <span className="sm:hidden">Matrix</span>
+            </TabsTrigger>
+            <TabsTrigger value="pasture" className="text-xs sm:text-sm py-2 sm:py-2.5">
+              <span className="hidden sm:inline">Weidestand</span>
+              <span className="sm:hidden">Weide</span>
+            </TabsTrigger>
+            <TabsTrigger value="horses" className="text-xs sm:text-sm py-2 sm:py-2.5 col-span-2 sm:col-span-1">
+              <span className="hidden sm:inline">Offenstall Pferde</span>
+              <span className="sm:hidden">Pferde</span>
+            </TabsTrigger>
+            <TabsTrigger value="systemstatus" className="text-xs sm:text-sm py-2 sm:py-2.5">
+              <span className="hidden sm:inline">Systemstatus</span>
+              <span className="sm:hidden">Status</span>
+            </TabsTrigger>
+            <TabsTrigger value="validation" className="text-xs sm:text-sm py-2 sm:py-2.5 col-span-2 sm:col-span-1 lg:col-span-1">
+              <span className="hidden sm:inline">System-Validierung</span>
+              <span className="sm:hidden">Validierung</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="matrix" className="space-y-4 sm:space-y-6 md:space-y-8">
@@ -305,36 +320,33 @@ const Index = () => {
             </div>
 
             {/* Export-Buttons */}
-            <div className="flex flex-wrap gap-2 sm:gap-3 justify-end">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:justify-end">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleExportQuestionnaire}
-                className="gap-1.5 sm:gap-2 text-xs sm:text-sm h-8 sm:h-9"
+                className="gap-2 text-xs sm:text-sm h-10 sm:h-9 touch-manipulation"
               >
-                <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">Fragenkatalog PDF</span>
-                <span className="sm:hidden">Fragebogen</span>
+                <FileText className="w-4 h-4" />
+                <span>Fragenkatalog PDF</span>
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleExportCSV}
-                className="gap-1.5 sm:gap-2 text-xs sm:text-sm h-8 sm:h-9"
+                className="gap-2 text-xs sm:text-sm h-10 sm:h-9 touch-manipulation"
               >
-                <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">CSV exportieren</span>
-                <span className="sm:hidden">CSV</span>
+                <Download className="w-4 h-4" />
+                <span>CSV exportieren</span>
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleExportPDF}
-                className="gap-1.5 sm:gap-2 text-xs sm:text-sm h-8 sm:h-9"
+                className="gap-2 text-xs sm:text-sm h-10 sm:h-9 touch-manipulation"
               >
-                <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">PDF-Bericht</span>
-                <span className="sm:hidden">PDF</span>
+                <FileText className="w-4 h-4" />
+                <span>PDF-Bericht</span>
               </Button>
             </div>
 

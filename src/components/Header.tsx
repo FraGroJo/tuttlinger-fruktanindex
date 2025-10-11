@@ -66,50 +66,55 @@ export function Header({ location, metadata, fruktanNow }: HeaderProps) {
   };
 
   return (
-    <header className="bg-card border-b shadow-sm backdrop-blur-sm">
-      <div className="container mx-auto px-4 py-4 sm:py-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <header className="bg-card border-b shadow-sm backdrop-blur-sm sticky top-0 z-50">
+      <div className="container mx-auto px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-6">
+        <div className="flex flex-col gap-3 sm:gap-4">
           {/* Titel & Ort */}
           <div className="flex-1">
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mb-1.5 sm:mb-2">
               Tuttlinger Fruktanindex
             </h1>
-            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
               <div className="flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5" />
-                <span>{location.name} · 47.969°N, 8.783°E</span>
-                {metadata?.localTimestamp && (
-                  <>
-                    <span>·</span>
-                    <span>Stand {formatTimestamp(metadata.localTimestamp)}</span>
-                  </>
-                )}
+                <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="truncate">{location.name}</span>
+                <span className="hidden sm:inline">· 47.969°N, 8.783°E</span>
               </div>
+              {metadata?.localTimestamp && (
+                <div className="flex items-center gap-1.5">
+                  <span className="hidden sm:inline">·</span>
+                  <span>Stand {formatTimestamp(metadata.localTimestamp)}</span>
+                </div>
+              )}
               {metadata?.dataSource && (
-                <WeatherSourceIndicator 
-                  source={metadata.dataSource}
-                  fallbackUsed={metadata.fallbackUsed}
-                />
+                <div className="sm:ml-auto">
+                  <WeatherSourceIndicator 
+                    source={metadata.dataSource}
+                    fallbackUsed={metadata.fallbackUsed}
+                  />
+                </div>
               )}
             </div>
           </div>
 
           {/* Kern-KPI */}
           {fruktanNow && (
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <div className="flex items-center gap-2 justify-end mb-1">
-                  <TrendingUp className="w-5 h-5 text-muted-foreground" />
-                  <span className="text-sm font-medium text-muted-foreground">Fruktan (jetzt, EMS)</span>
+            <div className="flex items-stretch gap-3 sm:gap-4 bg-gradient-to-br from-muted/30 to-transparent rounded-xl p-3 sm:p-4 border">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground flex-shrink-0" />
+                  <span className="text-xs sm:text-sm font-medium text-muted-foreground">Fruktan (jetzt, EMS)</span>
                 </div>
-                <div className="flex items-baseline gap-2 justify-end">
-                  <span className="text-3xl font-bold text-foreground">{fruktanNow.score}</span>
-                  <span className={`text-lg font-semibold ${getLevelColor(fruktanNow.level)}`}>
+                <div className="flex items-baseline gap-2 sm:gap-3">
+                  <span className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground tabular-nums">{fruktanNow.score}</span>
+                  <span className={`text-base sm:text-lg lg:text-xl font-semibold ${getLevelColor(fruktanNow.level)}`}>
                     {getLevelLabel(fruktanNow.level)}
                   </span>
                 </div>
               </div>
-              <InfoModal emsMode={true} />
+              <div className="flex items-center">
+                <InfoModal emsMode={true} />
+              </div>
             </div>
           )}
         </div>

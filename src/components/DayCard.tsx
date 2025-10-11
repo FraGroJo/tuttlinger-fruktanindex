@@ -56,17 +56,18 @@ export function DayCard({ matrix, className = "" }: DayCardProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      whileHover={{ scale: 1.02 }}
+      whileHover={{ scale: 1.01 }}
+      className="touch-manipulation"
     >
-      <Card className={`overflow-hidden backdrop-blur-sm bg-card/90 border shadow-lg rounded-2xl ${className}`}>
+      <Card className={`overflow-hidden backdrop-blur-sm bg-card/90 border shadow-lg rounded-xl sm:rounded-2xl ${className}`}>
         {/* Header */}
-        <div className="bg-gradient-to-r from-primary/10 to-primary/5 px-4 py-3 border-b">
-          <div className="flex items-center justify-between">
+        <div className="bg-gradient-to-r from-primary/10 to-primary/5 px-3 sm:px-4 py-2.5 sm:py-3 border-b">
+          <div className="flex items-center justify-between gap-2">
             <div>
-              <h3 className="font-bold text-foreground text-lg">{dayLabel}</h3>
-              <p className="text-xs text-muted-foreground">{formattedDate}</p>
+              <h3 className="font-bold text-foreground text-base sm:text-lg">{dayLabel}</h3>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">{formattedDate}</p>
             </div>
-            <div className="text-xs text-muted-foreground">
+            <div className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">
               Stand: {new Date().toLocaleTimeString("de-DE", { 
                 hour: "2-digit", 
                 minute: "2-digit",
@@ -85,24 +86,24 @@ export function DayCard({ matrix, className = "" }: DayCardProps) {
               <TooltipProvider key={data.slot}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className="p-4 hover:bg-muted/20 transition-colors cursor-help">
+                    <div className="p-3 sm:p-4 active:bg-muted/30 sm:hover:bg-muted/20 transition-colors cursor-help touch-manipulation">
                       {/* Icon & Label */}
-                      <div className="flex items-center gap-2 mb-3">
-                        <Icon className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-xs font-medium text-muted-foreground">{label}</span>
+                      <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+                        <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
+                        <span className="text-[11px] sm:text-xs font-medium text-muted-foreground">{label}</span>
                         {weatherIcon && (
                           <span className="ml-auto">{weatherIcon}</span>
                         )}
                       </div>
 
                       {/* Temperatur & Score */}
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="text-3xl font-bold text-foreground">
+                      <div className="flex items-center justify-between mb-2 sm:mb-3 gap-2">
+                        <div className="text-2xl sm:text-3xl font-bold text-foreground tabular-nums">
                           {data.temperature_spectrum?.median !== undefined 
                             ? `${data.temperature_spectrum.median.toFixed(1)}°`
                             : "—"}
                         </div>
-                        <RiskBadge level={data.level} score={data.score} className="scale-90" />
+                        <RiskBadge level={data.level} score={data.score} className="scale-75 sm:scale-90 flex-shrink-0" />
                       </div>
 
                       {/* Temperatur-Bar mit Min/Median/Max Werten */}
@@ -111,12 +112,12 @@ export function DayCard({ matrix, className = "" }: DayCardProps) {
                       )}
                       
                       {/* Reason Text */}
-                      <p className="text-xs text-muted-foreground mt-2 line-clamp-1">
+                      <p className="text-[10px] sm:text-xs text-muted-foreground mt-1.5 sm:mt-2 line-clamp-2 sm:line-clamp-1">
                         {data.reason.split('\n')[0]}
                       </p>
                     </div>
                   </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
+                  <TooltipContent className="max-w-xs text-xs sm:text-sm">
                     <div className="text-xs space-y-1">
                       <p className="font-semibold">{label} ({time})</p>
                       <p className="font-medium">Score: {data.score} - {data.level === 'safe' ? 'Sicher' : data.level === 'moderate' ? 'Erhöht' : 'Hoch'}</p>
@@ -150,16 +151,16 @@ function TempBarWithLabels({ spectrum }: { spectrum: TemperatureSpectrum }) {
   return (
     <div className="space-y-1">
       {/* Bar */}
-      <div className="relative h-2 bg-gradient-to-r from-blue-400/20 via-yellow-400/20 to-red-400/20 rounded-full overflow-hidden">
+      <div className="relative h-1.5 sm:h-2 bg-gradient-to-r from-blue-400/20 via-yellow-400/20 to-red-400/20 rounded-full overflow-hidden">
         {/* Median Marker */}
         <div 
-          className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2 h-2 bg-foreground rounded-full border border-background"
+          className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-1.5 h-1.5 sm:w-2 sm:h-2 bg-foreground rounded-full border border-background"
           style={{ left: `${medianPercent}%` }}
         />
       </div>
       
       {/* Labels */}
-      <div className="flex justify-between text-[10px] text-muted-foreground">
+      <div className="flex justify-between text-[9px] sm:text-[10px] text-muted-foreground tabular-nums">
         <span>{min.toFixed(1)}°</span>
         <span className="font-medium">{median.toFixed(1)}°</span>
         <span>{max.toFixed(1)}°</span>
