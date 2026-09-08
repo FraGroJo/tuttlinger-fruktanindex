@@ -80,8 +80,8 @@ export const TIME_WINDOWS = {
  */
 export const DEFAULT_LOCATION = {
   name: "Tuttlingen",
-  lat: 47.969083,
-  lon: 8.783222,
+  lat: 47.820643,
+  lon: 9.103038,
   timezone: "Europe/Berlin",
 } as const;
 
