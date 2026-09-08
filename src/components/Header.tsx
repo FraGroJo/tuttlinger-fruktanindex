@@ -72,7 +72,7 @@ export function Header({ location, metadata, fruktanNow }: HeaderProps) {
           {/* Titel & Ort */}
           <div className="flex-1">
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mb-1.5 sm:mb-2">
-              Tuttlinger Fruktanindex
+              Bonndorfer Fruktanindex
             </h1>
             <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
               <div className="flex items-center gap-1.5">

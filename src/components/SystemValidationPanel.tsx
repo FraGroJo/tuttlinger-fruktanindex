@@ -35,7 +35,7 @@ export function SystemValidationPanel({ data }: SystemValidationPanelProps) {
 
     const content = [
       '═══════════════════════════════════════════════════════════',
-      '  SYSTEMVALIDIERUNGSPROTOKOLL - TUTTLINGER FRUKTANINDEX',
+      '  SYSTEMVALIDIERUNGSPROTOKOLL - BONNDORFER FRUKTANINDEX',
       '═══════════════════════════════════════════════════════════',
       '',
       `Start:        ${new Date(report.startTime).toLocaleString('de-DE')}`,

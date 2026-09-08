@@ -76,10 +76,10 @@ export const TIME_WINDOWS = {
 } as const;
 
 /**
- * Standort Tuttlingen (fest)
+ * Standort Bonndorf (fest)
  */
 export const DEFAULT_LOCATION = {
-  name: "Tuttlingen",
+  name: "Bonndorf",
   lat: 47.820643,
   lon: 9.103038,
   timezone: "Europe/Berlin",
