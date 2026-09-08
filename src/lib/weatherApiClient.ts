@@ -4,17 +4,17 @@
  * Primärquelle: DWD ICON-D2 (hohe Auflösung, Deutschland)
  * Fallback: ECMWF (globales Modell)
  * 
- * Standort: Tuttlingen (47.820643°N, 9.103038°E)
+ * Standort: Bonndorf (47.820643°N, 9.103038°E)
  */
 
 import { logger } from './logger';
 import type { ECMWFResponse } from '@/types/api';
 
-// Fester Standort: Tuttlingen
-export const TUTTLINGEN_LOCATION = {
+// Fester Standort: Bonndorf
+export const BONNDORF_LOCATION = {
   latitude: 47.820643,
   longitude: 9.103038,
-  name: 'Tuttlingen',
+  name: 'Bonndorf',
   timezone: 'Europe/Berlin',
 } as const;
 
@@ -53,9 +53,9 @@ export class WeatherAPIClient {
    */
   private createParams(): URLSearchParams {
     return new URLSearchParams({
-      latitude: TUTTLINGEN_LOCATION.latitude.toString(),
-      longitude: TUTTLINGEN_LOCATION.longitude.toString(),
-      timezone: TUTTLINGEN_LOCATION.timezone,
+      latitude: BONNDORF_LOCATION.latitude.toString(),
+      longitude: BONNDORF_LOCATION.longitude.toString(),
+      timezone: BONNDORF_LOCATION.timezone,
       past_days: '3',
       forecast_days: '7',
       hourly: [
@@ -152,7 +152,7 @@ export class WeatherAPIClient {
         model,
         attempt,
         url: fullUrl,
-        location: TUTTLINGEN_LOCATION,
+        location: BONNDORF_LOCATION,
       });
 
       const response = await fetch(fullUrl, {
@@ -219,7 +219,7 @@ export class WeatherAPIClient {
     logger.info('weather_fetch_start', {
       primary: 'ICON-D2',
       fallback: 'ECMWF',
-      location: TUTTLINGEN_LOCATION,
+      location: BONNDORF_LOCATION,
     });
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {

@@ -247,7 +247,7 @@ export function DetailModal({
                 {/* Subline */}
                 <div className="text-xs text-muted-foreground">
                   Stand {formatTime(new Date())} · Zeitraum: {SLOT_LABELS[slot]}{" "}
-                  · Ort: Tuttlingen 47.821°N, 9.103°E
+                  · Ort: Bonndorf 47.821°N, 9.103°E
                 </div>
               </div>
 
