@@ -4,7 +4,7 @@
  * Primärquelle: DWD ICON-D2 (hohe Auflösung, Deutschland)
  * Fallback: ECMWF (globales Modell)
  * 
- * Standort: Tuttlingen (47.969083°N, 8.783222°E)
+ * Standort: Tuttlingen (47.820643°N, 9.103038°E)
  */
 
 import { logger } from './logger';
@@ -12,8 +12,8 @@ import type { ECMWFResponse } from '@/types/api';
 
 // Fester Standort: Tuttlingen
 export const TUTTLINGEN_LOCATION = {
-  latitude: 47.969083,
-  longitude: 8.783222,
+  latitude: 47.820643,
+  longitude: 9.103038,
   name: 'Tuttlingen',
   timezone: 'Europe/Berlin',
 } as const;

@@ -78,7 +78,7 @@ export function Header({ location, metadata, fruktanNow }: HeaderProps) {
               <div className="flex items-center gap-1.5">
                 <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
                 <span className="truncate">{location.name}</span>
-                <span className="hidden sm:inline">· 47.969°N, 8.783°E</span>
+                <span className="hidden sm:inline">· 47.821°N, 9.103°E</span>
               </div>
               {metadata?.localTimestamp && (
                 <div className="flex items-center gap-1.5">

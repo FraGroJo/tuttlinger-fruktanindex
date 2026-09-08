@@ -173,7 +173,7 @@ export default function SystemStatus() {
                   <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground" />
                   <div className="text-sm">
                     <div className="font-medium">Tuttlingen</div>
-                    <div className="text-muted-foreground">47.969°N, 8.783°E</div>
+                    <div className="text-muted-foreground">47.821°N, 9.103°E</div>
                     {data?.metadata?.localTimestamp && (
                       <div className="text-xs text-muted-foreground mt-1">
                         Stand: {new Date(data.metadata.localTimestamp).toLocaleString("de-DE", {
